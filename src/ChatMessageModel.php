@@ -370,6 +370,7 @@ class ChatMessageModel {
             ORDER BY ts_sms";
 
         $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as community UNION SELECT * FROM (".$get_all_sms_from_period_employee.") as employee ORDER BY ts_sms";
+        // echo "$full_query";
         $this->checkConnectionDB($full_query);
         $sms_result_from_period = $this->dbconn->query($full_query);
 
@@ -385,6 +386,56 @@ class ChatMessageModel {
                 $normalized_number = substr($row["sim_num"], -10);
                 $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
                 $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
+                $all_messages[$ctr]['user_number'] = $normalized_number;
+                $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                $all_messages[$ctr]['msg'] = $row['sms_msg'];
+                $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $ctr++;
+            }
+
+            $full_data['data'] = $all_messages;
+        } else {
+            echo "0 results\n";
+            $full_data['data'] = null;
+        }
+
+        return $this->utf8_encode_recursive($full_data);
+        // var_dump($this->utf8_encode_recursive($full_data));
+    }
+
+    public function getUnregisteredNumberMessages () {
+        $get_all_sms_from_period = "SELECT * FROM (
+                SELECT max(inbox_id) as inbox_id FROM (
+                    SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                    FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                    INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                    WHERE smsinbox_users.ts_sms > (now() - interval 7 day)
+                    ) as smsinbox 
+                GROUP BY full_name) as quickinbox 
+            INNER JOIN (
+                SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                WHERE smsinbox_users.ts_sms > (now() - interval 7 day) ORDER BY smsinbox_users.ts_sms desc) as smsinbox2 
+            USING(inbox_id) ORDER BY ts_sms";
+
+        // $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as unknown ORDER BY ts_sms";
+        echo "$get_all_sms_from_period";
+        $this->checkConnectionDB($get_all_sms_from_period);
+        $sms_result_from_period = $this->dbconn->query($get_all_sms_from_period);
+
+        $full_data['type'] = 'loadUnregisteredNumberConvesation';
+        $distinct_numbers = "";
+        $all_numbers = [];
+        $all_messages = [];
+        $quick_inbox_messages = [];
+        $ctr = 0;
+
+        if ($sms_result_from_period->num_rows > 0) {
+            while ($row = $sms_result_from_period->fetch_assoc()) {
+                $normalized_number = substr($row["sim_num"], -10);
+                $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
+                $all_messages[$ctr]['full_name'] = "Unknown";
                 $all_messages[$ctr]['user_number'] = $normalized_number;
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
@@ -4144,9 +4195,67 @@ class ChatMessageModel {
         date_default_timezone_set('Asia/Manila');
         $current_date = date('Y-m-d H:i:s');//H:i:s
         $final_template = $raw_data['backbone'][0]['template'];
+<<<<<<< Updated upstream
         $site_details = $this->generateSiteDetails($raw_data);
         $greeting = $this->generateGreetingsMessage(strtotime($current_date));
         $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
+=======
+        
+        if (($raw_data['site'][0]['purok'] == "" || $raw_data['site'][0]['purok'] == NULL) && $raw_data['site'][0]['sitio'] != NULL) {
+            $reconstructed_site_details = $raw_data['site'][0]['sitio'].", ".$raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
+        } else if ($raw_data['site'][0]['sitio'] == "" || $raw_data['site'][0]['sitio'] == NULL) {
+             $reconstructed_site_details = $raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
+        } else if (($raw_data['site'][0]['sitio'] == "" || $raw_data['site'][0]['sitio'] == NULL) && ($raw_data['site'][0]['purok'] == "" || $raw_data['site'][0]['purok'] == NULL)) {
+            $reconstructed_site_details = $raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
+        } else {
+             $reconstructed_site_details = $raw_data['site'][0]['purok'].", ".$raw_data['site'][0]['sitio'].", ".$raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
+        }
+
+        if(strtotime($current_date) >= strtotime(date("Y-m-d 00:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 11:59:59"))){
+            $greeting = "umaga";
+        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 12:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 13:00:00"))){
+            $greeting = "tanghali";
+        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 13:00:01")) && strtotime($current_date) < strtotime(date("Y-m-d 17:59:59"))) {
+            $greeting = "hapon";
+        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 18:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 23:59:59"))){
+            $greeting = "gabi";
+        }
+        // var_dump($greeting);
+        $time_of_release = strtotime($raw_data['data_timestamp']);
+        // $time_of_release = date("2018-09-21 02:30:00");
+        // $datetime = explode(" ",$time_of_release);
+        // $time = strtotime($datetime[1]);
+
+        if($time_of_release > strtotime(date("Y-m-d 00:00:00")) && $time_of_release < strtotime(date("Y-m-d 04:00:00"))){
+            $date_submission = "mamaya";
+            $time_submission = "bago mag-07:30 AM";
+            $ewi_time = "04:00 AM";
+        } else if($time_of_release > strtotime(date("Y-m-d 04:00:00")) && $time_of_release < strtotime(date("Y-m-d 07:59:59"))){
+            $date_submission = "mamaya";
+            $time_submission = "bago mag-07:30 AM";
+            $ewi_time = "08:00 AM";
+        } else if($time_of_release > strtotime(date("Y-m-d 08:00:00")) && $time_of_release < strtotime(date("Y-m-d 12:00:00"))){
+            $date_submission = "mamaya";
+            $time_submission = "bago mag-11:30 PM";
+            $ewi_time = "12:00 NN";
+        }else if($time_of_release > strtotime(date("Y-m-d 12::01")) && $time_of_release < strtotime(date("Y-m-d 15:59:59"))){
+            $date_submission = "mamaya";
+            $time_submission = "bago mag-3:30 PM";
+            $ewi_time = "04:00 PM";
+        } else if($time_of_release > strtotime(date("Y-m-d 16:00:00")) && $time_of_release < strtotime(date("Y-m-d 19:59:59"))){
+            $date_submission = "bukas";
+            $time_submission = "bago mag-7:30 AM";
+            $ewi_time = "08:00 PM";
+        } else if($time_of_release > strtotime(date("Y-m-d 20:00:00"))){
+            $date_submission = "bukas";
+            $time_submission = "bago mag-7:30 AM";
+            $ewi_time = "12:00 MN";
+        } else {
+            $date_submission = "mamaya";
+            $time_submission = "bago mag-07:30 AM";
+            $ewi_time = "04:00 AM";
+        }
+>>>>>>> Stashed changes
 
         if($raw_data['alert_level'] == "Alert 0" || $raw_data['event_category'] == "extended" && $raw_data['alert_level'] == "Alert 1"){
             $final_template = str_replace("(site_location)",$site_details,$final_template);

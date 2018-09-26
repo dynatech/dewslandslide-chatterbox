@@ -40,8 +40,9 @@ class ChatterBox implements MessageComponentInterface {
                 echo "Loading latest message from 20 registered and unknown numbers for the past 7 days...";
                 $quickInboxMessages = $this->chatModel->getQuickInboxMain();
                 $from->send(json_encode($quickInboxMessages));
-            } else if ($msgType == "smsloadquickinboxunregisteredrequest") {
-
+            } else if ($msgType == "smsLoadUnregistered") {
+                $quickInboxMessages = $this->chatModel->getUnregisteredNumberMessages();
+                $from->send(json_encode($quickInboxMessages));
             } else if ($msgType == "getRoutineMobileIDsForRoutine") {
                 echo "Loading LEWC Mobile Details for routine...";
                 $sites = $decodedText->sites;
