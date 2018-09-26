@@ -370,6 +370,7 @@ class ChatMessageModel {
             ORDER BY ts_sms";
 
         $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as community UNION SELECT * FROM (".$get_all_sms_from_period_employee.") as employee ORDER BY ts_sms";
+        // echo "$full_query";
         $this->checkConnectionDB($full_query);
         $sms_result_from_period = $this->dbconn->query($full_query);
 
@@ -385,6 +386,56 @@ class ChatMessageModel {
                 $normalized_number = substr($row["sim_num"], -10);
                 $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
                 $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
+                $all_messages[$ctr]['user_number'] = $normalized_number;
+                $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                $all_messages[$ctr]['msg'] = $row['sms_msg'];
+                $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $ctr++;
+            }
+
+            $full_data['data'] = $all_messages;
+        } else {
+            echo "0 results\n";
+            $full_data['data'] = null;
+        }
+
+        return $this->utf8_encode_recursive($full_data);
+        // var_dump($this->utf8_encode_recursive($full_data));
+    }
+
+    public function getUnregisteredNumberMessages () {
+        $get_all_sms_from_period = "SELECT * FROM (
+                SELECT max(inbox_id) as inbox_id FROM (
+                    SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                    FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                    INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                    WHERE smsinbox_users.ts_sms > (now() - interval 7 day)
+                    ) as smsinbox 
+                GROUP BY full_name) as quickinbox 
+            INNER JOIN (
+                SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                WHERE smsinbox_users.ts_sms > (now() - interval 7 day) ORDER BY smsinbox_users.ts_sms desc) as smsinbox2 
+            USING(inbox_id) ORDER BY ts_sms";
+
+        // $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as unknown ORDER BY ts_sms";
+        echo "$get_all_sms_from_period";
+        $this->checkConnectionDB($get_all_sms_from_period);
+        $sms_result_from_period = $this->dbconn->query($get_all_sms_from_period);
+
+        $full_data['type'] = 'loadUnregisteredNumberConvesation';
+        $distinct_numbers = "";
+        $all_numbers = [];
+        $all_messages = [];
+        $quick_inbox_messages = [];
+        $ctr = 0;
+
+        if ($sms_result_from_period->num_rows > 0) {
+            while ($row = $sms_result_from_period->fetch_assoc()) {
+                $normalized_number = substr($row["sim_num"], -10);
+                $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
+                $all_messages[$ctr]['full_name'] = "Unknown";
                 $all_messages[$ctr]['user_number'] = $normalized_number;
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
