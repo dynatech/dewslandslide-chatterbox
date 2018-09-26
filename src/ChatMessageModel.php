@@ -370,7 +370,7 @@ class ChatMessageModel {
             ORDER BY ts_sms";
 
         $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as community UNION SELECT * FROM (".$get_all_sms_from_period_employee.") as employee ORDER BY ts_sms";
-
+        // echo "$full_query";
         $this->checkConnectionDB($full_query);
         $sms_result_from_period = $this->dbconn->query($full_query);
 
@@ -399,8 +399,58 @@ class ChatMessageModel {
             $full_data['data'] = null;
         }
 
-        // echo "JSON DATA: " . json_encode($full_data);
         return $this->utf8_encode_recursive($full_data);
+        // var_dump($this->utf8_encode_recursive($full_data));
+    }
+
+    public function getUnregisteredNumberMessages () {
+        $get_all_sms_from_period = "SELECT * FROM (
+                SELECT max(inbox_id) as inbox_id FROM (
+                    SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                    FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                    INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                    WHERE smsinbox_users.ts_sms > (now() - interval 7 day)
+                    ) as smsinbox 
+                GROUP BY full_name) as quickinbox 
+            INNER JOIN (
+                SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
+                FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
+                WHERE smsinbox_users.ts_sms > (now() - interval 7 day) ORDER BY smsinbox_users.ts_sms desc) as smsinbox2 
+            USING(inbox_id) ORDER BY ts_sms";
+
+        // $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as unknown ORDER BY ts_sms";
+        echo "$get_all_sms_from_period";
+        $this->checkConnectionDB($get_all_sms_from_period);
+        $sms_result_from_period = $this->dbconn->query($get_all_sms_from_period);
+
+        $full_data['type'] = 'loadUnregisteredNumberConvesation';
+        $distinct_numbers = "";
+        $all_numbers = [];
+        $all_messages = [];
+        $quick_inbox_messages = [];
+        $ctr = 0;
+
+        if ($sms_result_from_period->num_rows > 0) {
+            while ($row = $sms_result_from_period->fetch_assoc()) {
+                $normalized_number = substr($row["sim_num"], -10);
+                $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
+                $all_messages[$ctr]['full_name'] = "Unknown";
+                $all_messages[$ctr]['user_number'] = $normalized_number;
+                $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                $all_messages[$ctr]['msg'] = $row['sms_msg'];
+                $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $ctr++;
+            }
+
+            $full_data['data'] = $all_messages;
+        } else {
+            echo "0 results\n";
+            $full_data['data'] = null;
+        }
+
+        return $this->utf8_encode_recursive($full_data);
+        // var_dump($this->utf8_encode_recursive($full_data));
     }
 
     public function getFullnamesAndNumbers() {
@@ -3377,7 +3427,7 @@ class ChatMessageModel {
         $inbox_outbox_collection = [];
         $convo_id_container = [];
         if(empty($offices)){
-            $offices = ["mlgu","blgu","lewc","plgu","lewc","mlgu","plgu","blgu"];
+            $offices = ["mlgu","blgu","lewc","plgu"];
         }
         $contact_lists = $this->getMobileDetailsViaOfficeAndSitename($offices,$sites);
 
@@ -3401,7 +3451,7 @@ class ChatMessageModel {
         $outbox_query = "SELECT smsoutbox_users.outbox_id as convo_id, mobile_id,
                         null as ts_received, ts_written, ts_sent, sms_msg , null as read_status,
                         web_status, gsm_id , send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
-        $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by sms_msg order by timestamp desc limit 70;";
+        $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by sms_msg,timestamp order by timestamp desc limit 70;";
 
         $fetch_convo = $this->dbconn->query($full_query);
         if ($fetch_convo->num_rows != 0) {
@@ -3499,7 +3549,6 @@ class ChatMessageModel {
         while ($row = $mobile_number->fetch_assoc()) {
             array_push($mobile_data_container, $row);
         }
-
         return $mobile_data_container;
     }
 
@@ -3878,7 +3927,7 @@ class ChatMessageModel {
         return $full_data;
     }
 
-    function autoTagMessage($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg) {
+    function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg) {
         $narrative_input = $this->getNarrativeInput($tag);
         $template = $narrative_input->fetch_assoc()['narrative_input'];
         $narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $timestamp, $template, $msg);
@@ -3890,6 +3939,18 @@ class ChatMessageModel {
             echo "No templates fetch..\n\n";
         }
         return $result;
+    }
+
+    function autoTagMessage($acc_id, $sms_id, $ts,$tag = "#EwiMessage") {
+        $status = [];
+        $get_tag_id = "SELECT tag_id FROM gintags_reference WHERE tag_name = '".$tag."'";
+        $tag_id_container = $this->dbconn->query($get_tag_id);
+        while ($row = $tag_id_container->fetch_assoc()) {
+            $tag_insertion_query = "INSERT INTO gintags VALUES (0,'".$row['tag_id']."','".$acc_id."','".$sms_id."','smsoutbox_users','".$ts."','Null')";
+            $tag_message = $this->dbconn->query($tag_insertion_query);
+            array_push($status, $tag_message);
+        }
+        return $status;
     }
 
     function getNarrativeInput($tag) {
@@ -4172,9 +4233,7 @@ class ChatMessageModel {
             $final_template = str_replace("(next_ewi_time)",$time_messages["next_ewi_time"],$final_template);
             $final_template = str_replace("(greetings)",$greeting,$final_template);
         }
-
-        
-
+      
         return $final_template;
     }
 
@@ -4205,27 +4264,27 @@ class ChatMessageModel {
     }
 
     function generateTimeMessages($release_time) {
-        if($release_time >= strtotime(date("Y-m-d 00:00:00")) && $release_time < strtotime(date("Y-m-d 04:00:00"))){
+        if($release_time >= strtotime(date("Y-m-d 00:00:00")) && $release_time < strtotime(date("Y-m-d 03:59:59"))){
           $date_submission = "mamaya";
           $time_submission = "bago mag-7:30 AM";
           $next_ewi_time = "4:00 AM";
         } 
-        else if($release_time >= strtotime(date("Y-m-d 04:00:00")) && $release_time < strtotime(date("Y-m-d 08:00:00"))){
+        else if($release_time >= strtotime(date("Y-m-d 04:00:00")) && $release_time < strtotime(date("Y-m-d 07:59:59"))){
           $date_submission = "mamaya";
           $time_submission = "bago mag-7:30 AM";
           $next_ewi_time = "8:00 AM";
         } 
-        else if($release_time >= strtotime(date("Y-m-d 08:00:00")) && $release_time < strtotime(date("Y-m-d 12:00:00"))){
+        else if($release_time >= strtotime(date("Y-m-d 08:00:00")) && $release_time < strtotime(date("Y-m-d 11:59:59"))){
           $date_submission = "mamaya";
           $time_submission = "bago mag-11:30 AM";
           $next_ewi_time = "12:00 NN";
         } 
-        else if($release_time >= strtotime(date("Y-m-d 08:00:00")) && $release_time < strtotime(date("Y-m-d 16:00:00"))){
+        else if($release_time >= strtotime(date("Y-m-d 12:00:00")) && $release_time < strtotime(date("Y-m-d 15:59:59"))){
           $date_submission = "mamaya";
           $time_submission = "bago mag-3:30 PM";
           $next_ewi_time = "4:00 PM";
         } 
-        else if($release_time >= strtotime(date("Y-m-d 16:00:00")) && $release_time < strtotime(date("Y-m-d 20:00:00"))){
+        else if($release_time >= strtotime(date("Y-m-d 16:00:00")) && $release_time < strtotime(date("Y-m-d 19:59:59"))){
           $date_submission = "bukas";
           $time_submission = "bago mag-7:30 AM";
           $next_ewi_time = "8:00 PM";
@@ -4260,10 +4319,10 @@ class ChatMessageModel {
         else if( $release_time > strtotime(date("Y-m-d 00:00:00")) && $release_time < strtotime(date("Y-m-d 11:59:59")) ){
           $greeting = "umaga";
         } 
-        else if( $release_time == strtotime(date("Y-m-d 12:00:00")) ){
+        else if( $release_time > strtotime(date("Y-m-d 12:00:00")) && $release_time < strtotime(date("Y-m-d 12:59:59")) ){
           $greeting = "tanghali";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 12:00:01")) && $release_time < strtotime(date("Y-m-d 15:59:59")) ){
+        else if( $release_time > strtotime(date("Y-m-d 13:00:00")) && $release_time < strtotime(date("Y-m-d 15:59:59")) ){
           $greeting = "hapon";
         } 
         else {
@@ -4462,6 +4521,7 @@ class ChatMessageModel {
         }        
         return $last_inserted_id;
     }
+
     function flagGndMeasSettingsSentStatus() {
         $overwrite_query = "UPDATE ground_meas_reminder_automation SET status = 1 WHERE status = 0";
         $this->checkConnectionDB($overwrite_query);
