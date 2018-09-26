@@ -2604,8 +2604,12 @@ class ChatMessageModel {
                 }
             } else {
                 for ($num_counter = 0; $num_counter < sizeof($data->numbers); $num_counter++) {
+
                     if ($data->numbers[$num_counter]->mobile_id != "" && $data->numbers[$num_counter]->mobile_number != "") {
                         // NUMBER ALREADY EXISTS
+                        echo "\nThis number already exists:";
+                        echo $data->numbers[$num_counter]->mobile_number;
+                        echo "\n";                        
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -2637,6 +2641,8 @@ class ChatMessageModel {
                         }
                     } else if ($data->numbers[$num_counter]->mobile_number == "") {
                         // BLANK NUMBER
+                        echo "\nBLANK NUMBER!";
+                        echo "\n";                        
                         try {
                             $num_exist = "DELETE FROM user_mobile WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
                             $result = $this->dbconn->query($num_exist);
@@ -2671,6 +2677,9 @@ class ChatMessageModel {
                         }
                     } else {
                         // NEW NUMBER
+                        echo "\nTHIS A NEW NUMBER";
+                        var_dump($data->numbers[$num_counter]->mobile_number);
+                        echo "\n";                        
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -3060,13 +3069,13 @@ class ChatMessageModel {
         }
 
         /* Get the mobile IDs per user */
-        $mobile_id_per_user = [];
-        $mobile_id_per_user = $this->getMobileIDPerUser($data->id);
+        $mobile_details_per_user = [];
+        $mobile_details_per_user = $this->getMobileDetailsPerUser($data->id);
 
         /* INSERT into user_ewi_status if user is mobile recipient and corresponding mobile_id */
-        for ($counter = 0; $counter < sizeof($mobile_id_per_user); $counter++) {
+        for ($counter = 0; $counter < sizeof($mobile_details_per_user); $counter++) {
             try {
-                $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$mobile_id_per_user[$counter]['mobile_id']."','".$data->ewi_recipient."','Active','".$data->id."')";
+                $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$mobile_details_per_user[$counter]['mobile_id']."','".$mobile_details_per_user[$counter]['mobile_status']."','Active','".$data->id."')";
                 $result = $this->dbconn->query($insert_ewi_status);
             } catch (Exception $e) {
                 $flag = false;
@@ -4195,67 +4204,10 @@ class ChatMessageModel {
         date_default_timezone_set('Asia/Manila');
         $current_date = date('Y-m-d H:i:s');//H:i:s
         $final_template = $raw_data['backbone'][0]['template'];
-<<<<<<< Updated upstream
+
         $site_details = $this->generateSiteDetails($raw_data);
         $greeting = $this->generateGreetingsMessage(strtotime($current_date));
         $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
-=======
-        
-        if (($raw_data['site'][0]['purok'] == "" || $raw_data['site'][0]['purok'] == NULL) && $raw_data['site'][0]['sitio'] != NULL) {
-            $reconstructed_site_details = $raw_data['site'][0]['sitio'].", ".$raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
-        } else if ($raw_data['site'][0]['sitio'] == "" || $raw_data['site'][0]['sitio'] == NULL) {
-             $reconstructed_site_details = $raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
-        } else if (($raw_data['site'][0]['sitio'] == "" || $raw_data['site'][0]['sitio'] == NULL) && ($raw_data['site'][0]['purok'] == "" || $raw_data['site'][0]['purok'] == NULL)) {
-            $reconstructed_site_details = $raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
-        } else {
-             $reconstructed_site_details = $raw_data['site'][0]['purok'].", ".$raw_data['site'][0]['sitio'].", ".$raw_data['site'][0]['barangay'].", ".$raw_data['site'][0]['municipality'].", ".$raw_data['site'][0]['province'];
-        }
-
-        if(strtotime($current_date) >= strtotime(date("Y-m-d 00:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 11:59:59"))){
-            $greeting = "umaga";
-        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 12:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 13:00:00"))){
-            $greeting = "tanghali";
-        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 13:00:01")) && strtotime($current_date) < strtotime(date("Y-m-d 17:59:59"))) {
-            $greeting = "hapon";
-        }else if(strtotime($current_date) >= strtotime(date("Y-m-d 18:00:00")) && strtotime($current_date) < strtotime(date("Y-m-d 23:59:59"))){
-            $greeting = "gabi";
-        }
-        // var_dump($greeting);
-        $time_of_release = strtotime($raw_data['data_timestamp']);
-        // $time_of_release = date("2018-09-21 02:30:00");
-        // $datetime = explode(" ",$time_of_release);
-        // $time = strtotime($datetime[1]);
-
-        if($time_of_release > strtotime(date("Y-m-d 00:00:00")) && $time_of_release < strtotime(date("Y-m-d 04:00:00"))){
-            $date_submission = "mamaya";
-            $time_submission = "bago mag-07:30 AM";
-            $ewi_time = "04:00 AM";
-        } else if($time_of_release > strtotime(date("Y-m-d 04:00:00")) && $time_of_release < strtotime(date("Y-m-d 07:59:59"))){
-            $date_submission = "mamaya";
-            $time_submission = "bago mag-07:30 AM";
-            $ewi_time = "08:00 AM";
-        } else if($time_of_release > strtotime(date("Y-m-d 08:00:00")) && $time_of_release < strtotime(date("Y-m-d 12:00:00"))){
-            $date_submission = "mamaya";
-            $time_submission = "bago mag-11:30 PM";
-            $ewi_time = "12:00 NN";
-        }else if($time_of_release > strtotime(date("Y-m-d 12::01")) && $time_of_release < strtotime(date("Y-m-d 15:59:59"))){
-            $date_submission = "mamaya";
-            $time_submission = "bago mag-3:30 PM";
-            $ewi_time = "04:00 PM";
-        } else if($time_of_release > strtotime(date("Y-m-d 16:00:00")) && $time_of_release < strtotime(date("Y-m-d 19:59:59"))){
-            $date_submission = "bukas";
-            $time_submission = "bago mag-7:30 AM";
-            $ewi_time = "08:00 PM";
-        } else if($time_of_release > strtotime(date("Y-m-d 20:00:00"))){
-            $date_submission = "bukas";
-            $time_submission = "bago mag-7:30 AM";
-            $ewi_time = "12:00 MN";
-        } else {
-            $date_submission = "mamaya";
-            $time_submission = "bago mag-07:30 AM";
-            $ewi_time = "04:00 AM";
-        }
->>>>>>> Stashed changes
 
         if($raw_data['alert_level'] == "Alert 0" || $raw_data['event_category'] == "extended" && $raw_data['alert_level'] == "Alert 1"){
             $final_template = str_replace("(site_location)",$site_details,$final_template);
@@ -4281,9 +4233,7 @@ class ChatMessageModel {
             $final_template = str_replace("(next_ewi_time)",$time_messages["next_ewi_time"],$final_template);
             $final_template = str_replace("(greetings)",$greeting,$final_template);
         }
-
-        
-
+      
         return $final_template;
     }
 
@@ -4525,17 +4475,17 @@ class ChatMessageModel {
         return $full_data;
     }
   
-    function getMobileIDPerUser($user_id) {
-        $mobile_id_per_user = [];
+    function getMobileDetailsPerUser($user_id) {
+        $mobile_details_per_user = [];
         $ctr = 0;
         try {
             $get_org_scope = "SELECT * FROM user_mobile WHERE user_id='".$user_id."'";
             $org_collection = $this->dbconn->query($get_org_scope);
             while ($row = $org_collection->fetch_assoc()) {
-                $mobile_id_per_user[$ctr] = $row;
+                $mobile_details_per_user[$ctr] = $row;
                 $ctr++;
             }
-            return $mobile_id_per_user;
+            return $mobile_details_per_user;
         } catch (Exception $e) {
             $flag = false;
         }
