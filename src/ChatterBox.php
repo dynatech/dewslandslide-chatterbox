@@ -332,7 +332,7 @@ class ChatterBox implements MessageComponentInterface {
                 }
                 $full_data['type'] = "sentEwiDashboard";
                 $full_data['statuses'] = $status;
-                $full_data['narrative_status'] = $this->chatModel->autoNarrative(array_unique($recipients_to_tag), $decodedText->event_id,$decodedText->site_id,$decodedText->data_timestamp,$decodedText->timestamp ,"#EwiMessage",$decodedText->msg);
+                $full_data['narrative_status'] = $this->chatModel->autoNarrative(array_unique($recipients_to_tag), $decodedText->event_id,$decodedText->site_id,$decodedText->data_timestamp,$decodedText->timestamp ,"#EwiMessage",$decodedText->msg, $decodedText->previous_release_time);
                 $full_data['gintag_status'] = $gintag_status;
                 $from->send(json_encode($full_data));
             } else if ($msgType == "getGroundMeasDefaultSettings") {

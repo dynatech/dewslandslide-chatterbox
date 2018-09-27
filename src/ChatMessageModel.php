@@ -3927,9 +3927,25 @@ class ChatMessageModel {
         return $full_data;
     }
 
-    function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg) {
+    function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg, $previous_release_time) {
         $narrative_input = $this->getNarrativeInput($tag);
         $template = $narrative_input->fetch_assoc()['narrative_input'];
+        $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() , interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
+        echo "$check_ack";
+        $ack_result = $this->senslope_dbconn->query($check_ack);
+        var_dump($ack_result->num_rows);
+        if ($ack_result->num_rows == 0){
+            $date = date("Y-m-d H:i:s");
+            $timestamp_release_date = strtotime ( '-200 minute' , strtotime ( $date ) ) ;
+            $timestamp_release_date = date ( "Y-m-d H:i:s" , $timestamp_release_date );
+
+            $no_ack_narrative_input = $this->getNarrativeInput("#NoAckEwi");
+            $no_ack_template = $no_ack_narrative_input->fetch_assoc()['narrative_input'];
+            $no_ack_narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $previous_release_time, $no_ack_template, $msg);
+            $sql = "INSERT INTO narratives VALUES(0,'".$event_id."','".$timestamp_release_date."','".$no_ack_narrative."')";
+            $this->senslope_dbconn->query($sql);
+        }
+
         $narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $timestamp, $template, $msg);
         if ($template != "") {
             $sql = "INSERT INTO narratives VALUES(0,'".$event_id."','".date("Y-m-d H:i:s")."','".$narrative."')";
@@ -3960,7 +3976,7 @@ class ChatMessageModel {
     }
 
     function parseTemplateCodes($offices, $site_id, $data_timestamp, $timestamp, $template, $msg, $full_name = "") {
-        $codes = ["(sender)","(sms_msg)","(current_release_time)","(stakeholders)"];
+        $codes = ["(sender)","(sms_msg)","(current_release_time)","(stakeholders)","(previous_release_time)"];
         foreach ($codes as $code) {
             switch ($code) {
                 case '(sender)':
@@ -3976,7 +3992,11 @@ class ChatMessageModel {
                     if (strlen($raw_time[0]) == 1) {$timestamp = "0".$timestamp;}
                     $template = str_replace($code,$timestamp,$template);
                     break;
-
+                case '(previous_release_time)':
+                    $raw_time = explode(":",$timestamp);
+                    if (strlen($raw_time[0]) == 1) {$timestamp = "0".$timestamp;}
+                    $template = str_replace($code,$timestamp,$template);
+                    break;
                 case '(stakeholders)':
                     $stakeholders = "";
                     $counter = 0;
@@ -3997,6 +4017,7 @@ class ChatMessageModel {
             }
         }
         return $template;
+
     }
 
     function fetchSitesForRoutine() {
@@ -4204,7 +4225,6 @@ class ChatMessageModel {
         date_default_timezone_set('Asia/Manila');
         $current_date = date('Y-m-d H:i:s');//H:i:s
         $final_template = $raw_data['backbone'][0]['template'];
-
         $site_details = $this->generateSiteDetails($raw_data);
         $greeting = $this->generateGreetingsMessage(strtotime($current_date));
         $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
@@ -4222,7 +4242,7 @@ class ChatMessageModel {
                 $final_template = str_replace("(current_date_time)",$raw_data['formatted_data_timestamp'],$final_template);
                 $final_template = str_replace("(nth-day-extended)",$raw_data['extended_day'] . "-day" ,$final_template);
             }
-        }else {
+        } else {
             $final_template = str_replace("(site_location)",$site_details,$final_template);
             $final_template = str_replace("(alert_level)",$raw_data['alert_level'],$final_template);
             $final_template = str_replace("(current_date_time)",$raw_data['formatted_data_timestamp'],$final_template);
@@ -4233,7 +4253,6 @@ class ChatMessageModel {
             $final_template = str_replace("(next_ewi_time)",$time_messages["next_ewi_time"],$final_template);
             $final_template = str_replace("(greetings)",$greeting,$final_template);
         }
-      
         return $final_template;
     }
 
