@@ -40,6 +40,7 @@ class ChatMessageModel {
         // $pwd = "senslope";
 
         $analysis_db = "senslopedb";
+
         $this->senslope_dbconn = new \mysqli($host, $usr, $pwd, $analysis_db);
         if ($this->senslope_dbconn->connect_error) {
             die("Connection failed: " . $this->senslope_dbconn->connect_error);
@@ -3423,10 +3424,13 @@ class ChatMessageModel {
                 } else {
                     $site_office_query = $site_office_query." OR (org_name = '".$office."' AND fk_site_id = '".$site."')";
                 }
+
                 $counter++;
             }
         }
+
         $mobile_data_query = "SELECT * FROM user_organization INNER JOIN users ON user_organization.user_id = users.user_id INNER JOIN user_mobile ON user_mobile.user_id = users.user_id INNER JOIN sites ON sites.site_id = '".$site."' WHERE ".$site_office_query.";";
+
         $mobile_number = $this->dbconn->query($mobile_data_query);
         while ($row = $mobile_number->fetch_assoc()) {
             array_push($mobile_data_container, $row);
@@ -4493,7 +4497,7 @@ class ChatMessageModel {
         $sites_cant_send_gndmeas = $this->getGroundMeasurementsForToday();
         $event_sites_query = "SELECT DISTINCT site_code,status,public_alert_release.event_id from sites INNER JOIN public_alert_event ON sites.site_id=public_alert_event.site_id INNER JOIN public_alert_release ON public_alert_event.event_id = public_alert_release.event_id WHERE public_alert_event.status <> 'routine' AND public_alert_event.status <> 'finished' AND public_alert_event.status <> 'invalid' AND public_alert_event.status <> 'extended' and public_alert_release.internal_alert_level NOT LIKE 'A3%' order by site_code";
 
-        $sites_with_stepup_alert = "SELECT DISTINCT site_code,status,public_alert_release.event_id from sites INNER JOIN public_alert_event ON sites.site_id=public_alert_event.site_id INNER JOIN public_alert_release ON public_alert_event.event_id = public_alert_release.event_id WHERE public_alert_event.status <> 'routine' AND public_alert_event.status <> 'finished' AND public_alert_event.status <> 'invalid' AND public_alert_event.status <> 'extended' and public_alert_release.internal_alert_level NOT LIKE 'A3%' order by site_code";
+        $sites_with_stepup_alert = "SELECT DISTINCT site_code,status,public_alert_release.event_id from sites INNER JOIN public_alert_event ON sites.site_id=public_alert_event.site_id INNER JOIN public_alert_release ON public_alert_event.event_id = public_alert_release.event_id WHERE public_alert_event.status = 'on-going' and public_alert_release.internal_alert_level like '%A3%' order by site_code;";
 
         $alert_three = [];
         $result = $this->senslope_dbconn->query($sites_with_stepup_alert);
@@ -4506,6 +4510,7 @@ class ChatMessageModel {
         while ($row = $result->fetch_assoc()) {
             array_push($event_sites, $row);
         }
+
         $final_sites = [];
         foreach ($event_sites as $evt_site) {
             if (sizeOf($sites_cant_send_gndmeas) > 0) {
@@ -4519,8 +4524,9 @@ class ChatMessageModel {
             }
         }
         $temp_sites = [];
-        
+
         foreach ($final_sites as $evt_site) {
+            sizeOf($alert_three);
             if (sizeOf($alert_three) > 0) {
                 if (!in_array($evt_site['site_code'], $alert_three)) {
                     array_push($temp_sites, $evt_site);
@@ -4529,10 +4535,12 @@ class ChatMessageModel {
                 $temp_sites = $event_sites;
             }
         }
+
         $temp = [];
         foreach (array_unique($temp_sites,SORT_REGULAR) as $site) {
             array_push($temp, $site);
         }
+
         return $temp;
     }
 
@@ -4592,5 +4600,11 @@ class ChatMessageModel {
         $this->checkConnectionDB($template_query);
         $result = $this->dbconn->query($template_query);
         return $result; 
+    }
+
+    function getSiteDetails($data) {
+        $site_query = "SELECT * FROM sites WHERE site_code = '".$data."'";
+        $result = $this->dbconn->query($site_query);
+        return $result->fetch_assoc();   
     }
 }

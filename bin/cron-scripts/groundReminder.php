@@ -1,8 +1,5 @@
 <?php
-    $servername = "localhost";
-    $username = "root";
-    $password = "senslope";
-    $dbname = "comms_db";
+    $credentials = include('../utils/config.php');
 
     class WebsocketClient {
         private $_Socket = null;
@@ -60,13 +57,15 @@
         }
     }
     // Create connection
-    $conn = new mysqli($servername, $username, $password, $dbname);
+    $conn = new mysqli($credentials['dbcredentials']['dbhost'], $credentials['dbcredentials']['dbuser'], 
+                        $credentials['dbcredentials']['dbpass'], $credentials['dbcredentials']['dbname']);
     // Check connection
     if ($conn->connect_error) {
         die("Connection failed: " . $conn->connect_error);
     }  else {
         echo "Connection established.\n\n";
     }
+
     $check_if_settings_exists_query = "SELECT * FROM ground_meas_reminder_automation WHERE status = 0";
     $exists = $conn->query($check_if_settings_exists_query);
     if ($exists->num_rows == 0) {
@@ -74,6 +73,7 @@
         $WebSocketClient = new WebsocketClient('localhost', 5050);
         $WebSocketClient->sendData(json_encode($gnd_settings));
     }
+
     $sql = "SELECT * FROM ground_meas_reminder_automation WHERE status = 0";
     $result = $conn->query($sql);
     $ground_meas_collection = [];
@@ -85,21 +85,17 @@
         echo "0 results";
         return;
     }
+
     foreach ($ground_meas_collection as $details) {
-        // $toBeSent = (object) array(
-        //     "type"=>"smssendgroup",
-        //     "user"=>"You",
-        //     "offices"=>[$details['office_recipients']],
-        //     "sitenames"=>[$details['site']],
-        //     "msg"=>$details['msg'],
-        //     "timestamp"=>date('Y-m-d H:i:s'),
-        //     "ewi_filter"=>"true",
-        //     "ewi_tag"=>"false",
-        //     );
-        
-        // $WebSocketClient = new WebsocketClient('localhost', 5050);
-        // $WebSocketClient->sendData(json_encode($toBeSent));
-        // unset($WebSocketClient);
+        $toBeSent = (object) array(
+            "type"=>"sendAutoGndMeasReminder",
+            "offices"=>[$details['office_recipients']],
+            "sitenames"=>[$details['site']],
+            "msg"=>$details['msg']
+            );
+        $WebSocketClient = new WebsocketClient('localhost', 5050);
+        $WebSocketClient->sendData(json_encode($toBeSent));
+        unset($WebSocketClient);
         $sql = "UPDATE ground_meas_reminder_automation SET status = 1 WHERE status = 0 and automation_id = '".$details['automation_id']."'";
         $result = $conn->query($sql);
         echo "Site: ".$details['site']." Status: ".$result."\n";
