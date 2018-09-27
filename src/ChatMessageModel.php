@@ -2604,8 +2604,12 @@ class ChatMessageModel {
                 }
             } else {
                 for ($num_counter = 0; $num_counter < sizeof($data->numbers); $num_counter++) {
+
                     if ($data->numbers[$num_counter]->mobile_id != "" && $data->numbers[$num_counter]->mobile_number != "") {
                         // NUMBER ALREADY EXISTS
+                        echo "\nThis number already exists:";
+                        echo $data->numbers[$num_counter]->mobile_number;
+                        echo "\n";                        
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -2637,6 +2641,8 @@ class ChatMessageModel {
                         }
                     } else if ($data->numbers[$num_counter]->mobile_number == "") {
                         // BLANK NUMBER
+                        echo "\nBLANK NUMBER!";
+                        echo "\n";                        
                         try {
                             $num_exist = "DELETE FROM user_mobile WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
                             $result = $this->dbconn->query($num_exist);
@@ -2671,6 +2677,9 @@ class ChatMessageModel {
                         }
                     } else {
                         // NEW NUMBER
+                        echo "\nTHIS A NEW NUMBER";
+                        var_dump($data->numbers[$num_counter]->mobile_number);
+                        echo "\n";                        
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -3060,13 +3069,13 @@ class ChatMessageModel {
         }
 
         /* Get the mobile IDs per user */
-        $mobile_id_per_user = [];
-        $mobile_id_per_user = $this->getMobileIDPerUser($data->id);
+        $mobile_details_per_user = [];
+        $mobile_details_per_user = $this->getMobileDetailsPerUser($data->id);
 
         /* INSERT into user_ewi_status if user is mobile recipient and corresponding mobile_id */
-        for ($counter = 0; $counter < sizeof($mobile_id_per_user); $counter++) {
+        for ($counter = 0; $counter < sizeof($mobile_details_per_user); $counter++) {
             try {
-                $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$mobile_id_per_user[$counter]['mobile_id']."','".$data->ewi_recipient."','Active','".$data->id."')";
+                $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$mobile_details_per_user[$counter]['mobile_id']."','".$mobile_details_per_user[$counter]['mobile_status']."','Active','".$data->id."')";
                 $result = $this->dbconn->query($insert_ewi_status);
             } catch (Exception $e) {
                 $flag = false;
@@ -4233,7 +4242,7 @@ class ChatMessageModel {
                 $final_template = str_replace("(current_date_time)",$raw_data['formatted_data_timestamp'],$final_template);
                 $final_template = str_replace("(nth-day-extended)",$raw_data['extended_day'] . "-day" ,$final_template);
             }
-        }else {
+        } else {
             $final_template = str_replace("(site_location)",$site_details,$final_template);
             $final_template = str_replace("(alert_level)",$raw_data['alert_level'],$final_template);
             $final_template = str_replace("(current_date_time)",$raw_data['formatted_data_timestamp'],$final_template);
@@ -4244,7 +4253,6 @@ class ChatMessageModel {
             $final_template = str_replace("(next_ewi_time)",$time_messages["next_ewi_time"],$final_template);
             $final_template = str_replace("(greetings)",$greeting,$final_template);
         }
-
         return $final_template;
     }
 
@@ -4486,17 +4494,17 @@ class ChatMessageModel {
         return $full_data;
     }
   
-    function getMobileIDPerUser($user_id) {
-        $mobile_id_per_user = [];
+    function getMobileDetailsPerUser($user_id) {
+        $mobile_details_per_user = [];
         $ctr = 0;
         try {
             $get_org_scope = "SELECT * FROM user_mobile WHERE user_id='".$user_id."'";
             $org_collection = $this->dbconn->query($get_org_scope);
             while ($row = $org_collection->fetch_assoc()) {
-                $mobile_id_per_user[$ctr] = $row;
+                $mobile_details_per_user[$ctr] = $row;
                 $ctr++;
             }
-            return $mobile_id_per_user;
+            return $mobile_details_per_user;
         } catch (Exception $e) {
             $flag = false;
         }
