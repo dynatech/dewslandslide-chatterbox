@@ -4047,7 +4047,7 @@ class ChatMessageModel {
     }
 
     function fetchRoutineReminder() {
-        $routine_query = "SELECT * from ewi_backbone_template WHERE alert_status = 'Reminder';";
+        $routine_query = "SELECT * from ewi_backbone_template WHERE alert_status = 'GndMeasReminder';";
         $template = [];
         $execute_query = $this->dbconn->query($routine_query);
         if ($execute_query->num_rows > 0) {
