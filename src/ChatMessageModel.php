@@ -4338,13 +4338,13 @@ class ChatMessageModel {
         else if( $release_time == strtotime(date("Y-m-d 00:00:00")) ){
           $greeting = "gabi";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 00:00:00")) && $release_time < strtotime(date("Y-m-d 11:59:59")) ){
+        else if( $release_time > strtotime(date("Y-m-d 00:00:00")) && $release_time <= strtotime(date("Y-m-d 11:59:59")) ){
           $greeting = "umaga";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 12:00:00")) && $release_time < strtotime(date("Y-m-d 12:59:59")) ){
+        else if( $release_time > strtotime(date("Y-m-d 12:00:00")) && $release_time <= strtotime(date("Y-m-d 12:59:59")) ){
           $greeting = "tanghali";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 13:00:00")) && $release_time < strtotime(date("Y-m-d 15:59:59")) ){
+        else if( $release_time > strtotime(date("Y-m-d 13:00:00")) && $release_time <= strtotime(date("Y-m-d 17:59:59")) ){
           $greeting = "hapon";
         } 
         else {
@@ -4566,7 +4566,7 @@ class ChatMessageModel {
         $sql = "SELECT * FROM gintags 
                 INNER JOIN smsinbox_users ON smsinbox_users.inbox_id = table_element_id 
                 INNER JOIN gintags_reference ON gintags.tag_id_fk = gintags_reference.tag_id
-                where (gintags_reference.tag_name = '#CantSendGroundMeas' OR gintags_reference.tag_name = '#GroundMeas' OR gintags_reference.tag_name = '#GroundObs') AND smsinbox_users.ts_sms < '".date('Y-m-d ').$ground_time."' AND smsinbox_users.ts_sms > '".$current_date."' limit 100;";
+                where (gintags_reference.tag_name = '#CantSendGroundMeas' OR gintags_reference.tag_name = '#GroundMeas' OR gintags_reference.tag_name = '#GroundObs') AND smsinbox_users.ts_sms < '".date('Y-m-d ').$ground_time."' AND smsinbox_users.ts_sms > '".$current_date."' limit 100;";      
         $result = $this->dbconn->query($sql);
         if ($result->num_rows > 0) {
             foreach ($result as $tagged) {
@@ -4575,10 +4575,10 @@ class ChatMessageModel {
                 if ($get_sites->num_rows > 0) {
                     foreach ($get_sites as $site) {
                         if (sizeOf($gndmeas_sent_sites) == 1) {
-                            array_push($gndmeas_sent_sites, $site['sitename']);
+                            array_push($gndmeas_sent_sites, $site['site_code']);
                         } else {
-                            if (!in_array($site['sitename'],$gndmeas_sent_sites)) {
-                                array_push($gndmeas_sent_sites,$site['sitename']);
+                            if (!in_array($site['site_code'],$gndmeas_sent_sites)) {
+                                array_push($gndmeas_sent_sites,$site['site_code']);
                             }
                         }
                     }
