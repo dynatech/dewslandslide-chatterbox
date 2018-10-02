@@ -4203,7 +4203,13 @@ class ChatMessageModel {
             echo "0 results\n";
         }
 
+        $on_set = null;
 
+        if($template_data->ewi_details->event_start === $template_data->ewi_details->data_timestamp) {
+            $on_set = true;
+        }else {
+            $on_set = false;
+        }
         $raw_template = [
             "site" => $site_container,
             "backbone" => $ewi_backbone_container,
@@ -4211,6 +4217,7 @@ class ChatMessageModel {
             "recommended_response" => $ewi_recommended_container,
             "formatted_data_timestamp" => $template_data->formatted_data_timestamp,
             "data_timestamp" => $template_data->data_timestamp,
+            "on_set" => $on_set,
             "alert_level" => $alert_level,
             "event_category" => $template_data->event_category,
             "extended_day" => $extended_day
@@ -4231,7 +4238,12 @@ class ChatMessageModel {
         $final_template = $raw_data['backbone'][0]['template'];
         $site_details = $this->generateSiteDetails($raw_data);
         $greeting = $this->generateGreetingsMessage(strtotime($current_date));
-        $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
+
+        if($on_set == true){
+            $time_messages = $this->generateTimeMessages(strtotime($raw_data['data_timestamp']));
+        }else {
+            $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
+        }
 
         if($raw_data['alert_level'] == "Alert 0" || $raw_data['event_category'] == "extended" && $raw_data['alert_level'] == "Alert 1"){
             $final_template = str_replace("(site_location)",$site_details,$final_template);
@@ -4339,13 +4351,13 @@ class ChatMessageModel {
         else if( $release_time == strtotime(date("Y-m-d 00:00:00")) ){
           $greeting = "gabi";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 00:00:00")) && $release_time <= strtotime(date("Y-m-d 11:59:59")) ){
+        else if( $release_time >= strtotime(date("Y-m-d 00:01:00")) && $release_time <= strtotime(date("Y-m-d 11:59:59")) ){
           $greeting = "umaga";
-        } 
-        else if( $release_time > strtotime(date("Y-m-d 12:00:00")) && $release_time <= strtotime(date("Y-m-d 12:59:59")) ){
+        }
+        else if( $release_time == strtotime(date("Y-m-d 12:00:00")) ){
           $greeting = "tanghali";
         } 
-        else if( $release_time > strtotime(date("Y-m-d 13:00:00")) && $release_time <= strtotime(date("Y-m-d 17:59:59")) ){
+        else if( $release_time >= strtotime(date("Y-m-d 12:01:00")) && $release_time <= strtotime(date("Y-m-d 17:59:59")) ){
           $greeting = "hapon";
         } 
         else {
