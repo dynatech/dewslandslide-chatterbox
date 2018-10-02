@@ -92,21 +92,21 @@ class ChatMessageModel {
                 $curSimPrefix = substr($contactNumber, 3, 2);
             }
 
-            echo "simprefix: 09$curSimPrefix\n";
-            $networkSmart = "00,07,08,09,10,11,12,14,18,19,20,21,22,23,24,25,28,29,30,31,
-            32,33,34,38,39,40,42,43,44,46,47,48,49,50,89,98,99";
-            $networkGlobe = "05,06,15,16,17,25,26,27,35,36,37,45,55,56,75,77,78,79,94,95,96,97";
-            if (strpos($networkSmart, $curSimPrefix)) {
-                echo "Smart Network!\n";
-                return "SMART";
-            } 
-            elseif (strpos($networkGlobe, $curSimPrefix)) {
-                echo "Globe Network!\n";
-                return "GLOBE";
-            }
-            else {
-                echo "Unkown Network!\n";
-                return "UNKNOWN";
+            $networkSmart = ['00','07','08','09','10','11','12','14','18','19','20','21','22','23','24','25','28','29','30','31',
+            '32','33','34','38','39','40','42','43','44','46','47','48','49','50','89','98','99'];
+
+            $networkGlobe = ['05','06','15','16','17','25','26','27','35','36','37','45','55','56','65','75','77','78','79','94','95','96','97'];
+
+            if (isset($curSimPrefix) == false || is_numeric($curSimPrefix) == false) {
+                return "You";
+            } else {
+                if (in_array($curSimPrefix,$networkSmart)) {
+                    return "SMART";
+                } else if (in_array($curSimPrefix,$networkGlobe)) {
+                    return "GLOBE";
+                } else {
+                    return "UNKNOWN";
+                }           
             }
         } catch (Exception $e) {
             echo "identifyMobileNetwork Exception: Unknown Network\n";
@@ -261,34 +261,6 @@ class ChatMessageModel {
         return $qiResults;
     }
 
-    public function addQuickInboxMessageToCache($receivedMsg) {
-        $os = PHP_OS;
-
-        if (strpos($os,'WIN') !== false) {
-            return;
-        }
-        elseif ((strpos($os,'Ubuntu') !== false) || (strpos($os,'Linux') !== false)) {
-
-            $mem = new \Memcached();
-            $mem->addServer("127.0.0.1", 11211);
-            $qiCached = $mem->get("cachedQI");
-            if ($qiCached && ($this->qiInit == true) ) {
-                echo "Initialize the Quick Inbox Messages \n";
-
-                $qiResults = $this->getQuickInboxMessages();
-                $mem->set("cachedQI", $qiResults) or die("couldn't save quick inbox results");
-            } 
-            else {
-                array_pop($qiCached['data']);
-                array_unshift($qiCached['data'], $receivedMsg);
-                $mem->set("cachedQI", $qiCached) or die("couldn't save quick inbox results");
-            }
-        }
-        else {
-            return;
-        }
-    }
-
     public function getRowFromMultidimensionalArray($mdArray, $field, $value) {
        foreach($mdArray as $key => $row) {
           if ( $row[$field] === $value )
@@ -391,6 +363,7 @@ class ChatMessageModel {
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
                 $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 $ctr++;
             }
 
@@ -3445,13 +3418,13 @@ class ChatMessageModel {
 
         $inbox_query = "SELECT smsinbox_users.inbox_id as convo_id, smsinbox_users.mobile_id, 
                         smsinbox_users.ts_sms as ts_received, null as ts_written, null as ts_sent, smsinbox_users.sms_msg,
-                        smsinbox_users.read_status, smsinbox_users.web_status, smsinbox_users.gsm_id ,
+                        smsinbox_users.read_status, smsinbox_users.web_status, smsinbox_users.gsm_id, user_mobile.sim_num,
                         null as send_status , ts_sms as timestamp, UPPER(CONCAT(sites.site_code,' ',user_organization.org_name, ' - ', users.lastname, ', ', users.firstname)) as user from smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id 
                         INNER JOIN users ON users.user_id = user_mobile.user_id INNER JOIN user_organization ON users.user_id = user_organization.user_id INNER JOIN sites ON user_organization.fk_site_id = sites.site_id WHERE ".$inbox_filter_query."";
 
         $outbox_query = "SELECT smsoutbox_users.outbox_id as convo_id, mobile_id,
                         null as ts_received, ts_written, ts_sent, sms_msg , null as read_status,
-                        web_status, gsm_id , send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
+                        web_status, gsm_id, null as sim_num, send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
         $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by sms_msg,timestamp order by timestamp desc limit 70;";
 
         $fetch_convo = $this->dbconn->query($full_query);
@@ -3463,6 +3436,7 @@ class ChatMessageModel {
                 } else {
                     $row['hasTag'] = 1;
                 }
+                $row['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 array_push($inbox_outbox_collection,$row);
             }
         } else {
