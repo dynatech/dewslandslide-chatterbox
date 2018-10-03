@@ -343,7 +343,6 @@ class ChatterBox implements MessageComponentInterface {
                 } else {
                     $ground_time = '7:30 AM';
                 }
-                if(isset($decodedText->overwrite)){if ($decodedText->overwrite == true) {$this->chatModel->flagGndMeasSettingsSentStatus();}}
                 $check_if_settings_set = $this->chatModel->checkForGndMeasSettings($ground_time);
                 $routine_sites = $this->chatModel->routineSites();
                 $event_sites = $this->chatModel->eventSites();
@@ -373,12 +372,12 @@ class ChatterBox implements MessageComponentInterface {
                 $from->send(json_encode($full_data));
             } else if ($msgType == "setGndMeasReminderSettings") {
                 $site_status = [];
-                $this->chatModel->flagGndMeasSettingsSentStatus();
+                if($decodedText->overwrite == true) {$this->chatModel->flagGndMeasSettingsSentStatus();}
                 foreach ($decodedText->sites as $site) {
                     if ($site == 'MSL' || $site == 'MSU') {
                         $site = 'mes';
                     }
-                    $to_send = $this->chatModel->insertGndMeasReminderSettings($site, $decodedText->category, $decodedText->template, $decodedText->altered, $decodedText->modified);
+                    $to_send = $this->chatModel->insertGndMeasReminderSettings($site, $decodedText->category, $decodedText->template, $decodedText->altered, $decodedText->modified, $decodedText->send_time);
                 }
             } else if ($msgType == "setUneditedGndMeasReminderSetting") {
                 if (strtotime(date('h:i A')) > strtotime('7:30 AM') && strtotime(date('h:m A')) < strtotime('11:30 AM')) {
