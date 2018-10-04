@@ -348,6 +348,16 @@ class ChatterBox implements MessageComponentInterface {
                 $event_sites = $this->chatModel->eventSites();
                 $extended_sites = $this->chatModel->extendedSites();
                 if (sizeOf($check_if_settings_set) > 0) {
+                    $ground_meas_reminder_template = $this->chatModel->getGroundMeasurementReminderTemplate();
+                    $ground_meas_reminder_template['template'] = str_replace("(ground_meas_submission)",$ground_time,$ground_meas_reminder_template['template']);
+                    if (strtotime(date('h:i A')) >= strtotime('7:30 AM') && strtotime(date('h:i A')) <= strtotime('11:30 AM')) {
+                        $ground_meas_reminder_template['template'] = str_replace("(greetings)","umaga",$ground_meas_reminder_template['template']);
+                    } else if (strtotime(date('h:i A')) >= strtotime('11:30 AM') && strtotime(date('h:i A')) <= strtotime('2:30 PM')) {
+                        $ground_meas_reminder_template['template'] = str_replace("(greetings)","hapon",$ground_meas_reminder_template['template']);
+                    } else {
+                        $ground_meas_reminder_template['template'] = str_replace("(greetings)","umaga",$ground_meas_reminder_template['template']);
+                    }
+                    $full_data['template'] = $ground_meas_reminder_template;
                     $full_data['save_settings'] = $check_if_settings_set;
                     $full_data['saved'] = true;
                 } else {
@@ -364,6 +374,7 @@ class ChatterBox implements MessageComponentInterface {
                     $full_data['time_of_sending'] = $ground_time;
                     $full_data['saved'] = false;
                 }
+                $full_data['time_of_sending'] = $ground_time;
                 $full_data['event_sites'] = $event_sites;
                 $full_data['extended_sites'] = $extended_sites;
                 $full_data['routine_sites'] = $routine_sites;
@@ -372,13 +383,16 @@ class ChatterBox implements MessageComponentInterface {
                 $from->send(json_encode($full_data));
             } else if ($msgType == "setGndMeasReminderSettings") {
                 $site_status = [];
-                if($decodedText->overwrite == true) {$this->chatModel->flagGndMeasSettingsSentStatus();}
+                // if($decodedText->overwrite == true) {$this->chatModel->flagGndMeasSettingsSentStatus();}
                 foreach ($decodedText->sites as $site) {
                     if ($site == 'MSL' || $site == 'MSU') {
                         $site = 'mes';
                     }
                     $to_send = $this->chatModel->insertGndMeasReminderSettings($site, $decodedText->category, $decodedText->template, $decodedText->altered, $decodedText->modified, $decodedText->send_time);
                 }
+                $full_data['type'] = "insertGndMeasReminderSettingsStatus";
+                $full_data['status'] = true;
+                $from->send(json_encode($full_data));
             } else if ($msgType == "setUneditedGndMeasReminderSetting") {
                 if (strtotime(date('h:i A')) > strtotime('7:30 AM') && strtotime(date('h:m A')) < strtotime('11:30 AM')) {
                     $ground_time = '11:30 AM';

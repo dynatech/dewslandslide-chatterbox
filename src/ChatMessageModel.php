@@ -4760,13 +4760,13 @@ class ChatMessageModel {
 
         while($row = $result->fetch_assoc()) {
 
-            $start = strtotime('tomorrow noon', strtotime($row['validity']));
-            $end = strtotime('+2 days', $start);
-            $day = 3 - ceil(($end - (60*60*12) - strtotime('now'))/(60*60*24));
+            // $start = strtotime('tomorrow noon', strtotime($row['validity']));
+            // $end = strtotime('+2 days', $start);
+            // $day = 3 - ceil(($end - (60*60*12) - strtotime('now'))/(60*60*24));
 
-            if ($day > 0 && $day <= 3) {
+            // if ($day > 0 && $day <= 3) {
                 array_push($extended_sites, $row['site_code']);
-            }
+            // }
         }
 
         $final_sites = [];
