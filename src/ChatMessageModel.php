@@ -3937,7 +3937,7 @@ class ChatMessageModel {
         $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() , interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
         echo "$check_ack";
         $ack_result = $this->senslope_dbconn->query($check_ack);
-        var_dump($ack_result->num_rows);
+        // var_dump($ack_result->num_rows);
         if ($ack_result->num_rows == 0){
             $date = date("Y-m-d H:i:s");
             $timestamp_release_date = strtotime ( '-200 minute' , strtotime ( $date ) ) ;
