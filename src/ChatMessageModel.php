@@ -92,21 +92,21 @@ class ChatMessageModel {
                 $curSimPrefix = substr($contactNumber, 3, 2);
             }
 
-            echo "simprefix: 09$curSimPrefix\n";
-            $networkSmart = "00,07,08,09,10,11,12,14,18,19,20,21,22,23,24,25,28,29,30,31,
-            32,33,34,38,39,40,42,43,44,46,47,48,49,50,89,98,99";
-            $networkGlobe = "05,06,15,16,17,25,26,27,35,36,37,45,55,56,75,77,78,79,94,95,96,97";
-            if (strpos($networkSmart, $curSimPrefix)) {
-                echo "Smart Network!\n";
-                return "SMART";
-            } 
-            elseif (strpos($networkGlobe, $curSimPrefix)) {
-                echo "Globe Network!\n";
-                return "GLOBE";
-            }
-            else {
-                echo "Unkown Network!\n";
-                return "UNKNOWN";
+            $networkSmart = ['00','07','08','09','10','11','12','14','18','19','20','21','22','23','24','25','28','29','30','31',
+            '32','33','34','38','39','40','42','43','44','46','47','48','49','50','89','98','99'];
+
+            $networkGlobe = ['05','06','15','16','17','25','26','27','35','36','37','45','55','56','65','75','77','78','79','94','95','96','97'];
+
+            if (isset($curSimPrefix) == false || is_numeric($curSimPrefix) == false) {
+                return "You";
+            } else {
+                if (in_array($curSimPrefix,$networkSmart)) {
+                    return "SMART";
+                } else if (in_array($curSimPrefix,$networkGlobe)) {
+                    return "GLOBE";
+                } else {
+                    return "UNKNOWN";
+                }           
             }
         } catch (Exception $e) {
             echo "identifyMobileNetwork Exception: Unknown Network\n";
@@ -261,32 +261,14 @@ class ChatMessageModel {
         return $qiResults;
     }
 
-    public function addQuickInboxMessageToCache($receivedMsg) {
-        $os = PHP_OS;
+    public function getUnregisteredInboxMain($isForceLoad=false) {
 
-        if (strpos($os,'WIN') !== false) {
-            return;
-        }
-        elseif ((strpos($os,'Ubuntu') !== false) || (strpos($os,'Linux') !== false)) {
+        $start = microtime(true);
+        $qiResults = $this->getUnregisteredInboxMessages();
+        $execution_time = microtime(true) - $start;
+        echo "\n\nExecution Time: $execution_time\n\n";
 
-            $mem = new \Memcached();
-            $mem->addServer("127.0.0.1", 11211);
-            $qiCached = $mem->get("cachedQI");
-            if ($qiCached && ($this->qiInit == true) ) {
-                echo "Initialize the Quick Inbox Messages \n";
-
-                $qiResults = $this->getQuickInboxMessages();
-                $mem->set("cachedQI", $qiResults) or die("couldn't save quick inbox results");
-            } 
-            else {
-                array_pop($qiCached['data']);
-                array_unshift($qiCached['data'], $receivedMsg);
-                $mem->set("cachedQI", $qiCached) or die("couldn't save quick inbox results");
-            }
-        }
-        else {
-            return;
-        }
+        return $qiResults;
     }
 
     public function getRowFromMultidimensionalArray($mdArray, $field, $value) {
@@ -371,15 +353,12 @@ class ChatMessageModel {
             ORDER BY ts_sms";
 
         $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as community UNION SELECT * FROM (".$get_all_sms_from_period_employee.") as employee ORDER BY ts_sms";
-        // echo "$full_query";
+
         $this->checkConnectionDB($full_query);
         $sms_result_from_period = $this->dbconn->query($full_query);
 
         $full_data['type'] = 'smsloadquickinbox';
-        $distinct_numbers = "";
-        $all_numbers = [];
         $all_messages = [];
-        $quick_inbox_messages = [];
         $ctr = 0;
 
         if ($sms_result_from_period->num_rows > 0) {
@@ -391,6 +370,7 @@ class ChatMessageModel {
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
                 $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 $ctr++;
             }
 
@@ -401,49 +381,41 @@ class ChatMessageModel {
         }
 
         return $this->utf8_encode_recursive($full_data);
-        // var_dump($this->utf8_encode_recursive($full_data));
     }
 
-    public function getUnregisteredNumberMessages () {
-        $get_all_sms_from_period = "SELECT * FROM (
-                SELECT max(inbox_id) as inbox_id FROM (
-                    SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
-                    FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
-                    INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
-                    WHERE smsinbox_users.ts_sms > (now() - interval 7 day)
-                    ) as smsinbox 
-                GROUP BY full_name) as quickinbox 
-            INNER JOIN (
-                SELECT smsinbox_users.inbox_id, smsinbox_users.ts_sms, smsinbox_users.mobile_id, smsinbox_users.sms_msg, smsinbox_users.read_status, smsinbox_users.web_status,smsinbox_users.gsm_id,user_mobile.sim_num
-                FROM smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
-                INNER JOIN users ON user_mobile.mobile_id = smsinbox_users.mobile_id 
-                WHERE smsinbox_users.ts_sms > (now() - interval 7 day) ORDER BY smsinbox_users.ts_sms desc) as smsinbox2 
-            USING(inbox_id) ORDER BY ts_sms";
-
-        // $full_query = "SELECT * FROM (".$get_all_sms_from_period.") as unknown ORDER BY ts_sms";
-        echo "$get_all_sms_from_period";
-        $this->checkConnectionDB($get_all_sms_from_period);
-        $sms_result_from_period = $this->dbconn->query($get_all_sms_from_period);
-
-        $full_data['type'] = 'loadUnregisteredNumberConvesation';
-        $distinct_numbers = "";
-        $all_numbers = [];
+    public function getUnregisteredInboxMessages($periodDays = 7) {
+        $get_all_unregistered_query = "SELECT 
+                                            smsinbox_users.inbox_id,
+                                            CONCAT(users.lastname, ', ', users.firstname) AS full_name,
+                                            user_mobile.sim_num,
+                                            user_mobile.mobile_id,
+                                            smsinbox_users.sms_msg,
+                                            smsinbox_users.ts_sms
+                                        FROM
+                                            smsinbox_users
+                                                INNER JOIN
+                                            user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id
+                                                INNER JOIN
+                                            users ON user_mobile.user_id = users.user_id
+                                        WHERE
+                                            smsinbox_users.ts_sms > (NOW() - INTERVAL 7 DAY)
+                                                AND users.firstname LIKE '%UNKNOWN_%';";
+        $sms_result_from_period = $this->dbconn->query($get_all_unregistered_query);
+        $full_data['type'] = 'smsloadunregisteredinbox';
         $all_messages = [];
-        $quick_inbox_messages = [];
         $ctr = 0;
-
         if ($sms_result_from_period->num_rows > 0) {
             while ($row = $sms_result_from_period->fetch_assoc()) {
                 $normalized_number = substr($row["sim_num"], -10);
                 $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
-                $all_messages[$ctr]['full_name'] = "Unknown";
+                $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
                 $all_messages[$ctr]['user_number'] = $normalized_number;
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
                 $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 $ctr++;
             }
-
             $full_data['data'] = $all_messages;
         } else {
             echo "0 results\n";
@@ -451,7 +423,6 @@ class ChatMessageModel {
         }
 
         return $this->utf8_encode_recursive($full_data);
-        // var_dump($this->utf8_encode_recursive($full_data));
     }
 
     public function getFullnamesAndNumbers() {
@@ -3397,17 +3368,24 @@ class ChatMessageModel {
         $inbox_query = "SELECT smsinbox_users.inbox_id as convo_id, smsinbox_users.mobile_id, 
                         smsinbox_users.ts_sms as ts_received, null as ts_written, null as ts_sent, smsinbox_users.sms_msg,
                         smsinbox_users.read_status, smsinbox_users.web_status, smsinbox_users.gsm_id ,
-                        null as send_status , ts_sms as timestamp, UPPER(CONCAT(sites.site_code,' ',user_organization.org_name, ' - ', users.lastname, ', ', users.firstname)) as user from smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id 
+                        null as send_status , ts_sms as timestamp, user_mobile.sim_num, UPPER(CONCAT(sites.site_code,' ',user_organization.org_name, ' - ', users.lastname, ', ', users.firstname)) as user from smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id 
                         INNER JOIN users ON users.user_id = user_mobile.user_id INNER JOIN user_organization ON users.user_id = user_organization.user_id INNER JOIN sites ON user_organization.fk_site_id = sites.site_id WHERE ".$inbox_filter_query."";
 
         $outbox_query = "SELECT smsoutbox_users.outbox_id as convo_id, mobile_id,
                         null as ts_received, ts_written, ts_sent, sms_msg , null as read_status,
-                        web_status, gsm_id , send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
+                        web_status, gsm_id , send_status , ts_written as timestamp,null as sim_num 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
         $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by sms_msg order by timestamp desc limit 70;";
 
         $fetch_convo = $this->dbconn->query($full_query);
         if ($fetch_convo->num_rows != 0) {
             while($row = $fetch_convo->fetch_assoc()) {
+                $tag = $this->fetchSmsTags($row['convo_id']);
+                if (sizeOf($tag['data']) == 0) {
+                    $row['hasTag'] = 0;
+                } else {
+                    $row['hasTag'] = 1;
+                }
+                $row['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 array_push($inbox_outbox_collection,$row);
             }
         } else {
@@ -3445,13 +3423,13 @@ class ChatMessageModel {
 
         $inbox_query = "SELECT smsinbox_users.inbox_id as convo_id, smsinbox_users.mobile_id, 
                         smsinbox_users.ts_sms as ts_received, null as ts_written, null as ts_sent, smsinbox_users.sms_msg,
-                        smsinbox_users.read_status, smsinbox_users.web_status, smsinbox_users.gsm_id ,
+                        smsinbox_users.read_status, smsinbox_users.web_status, smsinbox_users.gsm_id, user_mobile.sim_num,
                         null as send_status , ts_sms as timestamp, UPPER(CONCAT(sites.site_code,' ',user_organization.org_name, ' - ', users.lastname, ', ', users.firstname)) as user from smsinbox_users INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id 
                         INNER JOIN users ON users.user_id = user_mobile.user_id INNER JOIN user_organization ON users.user_id = user_organization.user_id INNER JOIN sites ON user_organization.fk_site_id = sites.site_id WHERE ".$inbox_filter_query."";
 
         $outbox_query = "SELECT smsoutbox_users.outbox_id as convo_id, mobile_id,
                         null as ts_received, ts_written, ts_sent, sms_msg , null as read_status,
-                        web_status, gsm_id , send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
+                        web_status, gsm_id, null as sim_num, send_status , ts_written as timestamp, 'You' as user FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id WHERE ".$outbox_filter_query."";
         $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by sms_msg,timestamp order by timestamp desc limit 70;";
 
         $fetch_convo = $this->dbconn->query($full_query);
@@ -3463,6 +3441,7 @@ class ChatMessageModel {
                 } else {
                     $row['hasTag'] = 1;
                 }
+                $row['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 array_push($inbox_outbox_collection,$row);
             }
         } else {
@@ -3934,10 +3913,9 @@ class ChatMessageModel {
     function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg, $previous_release_time) {
         $narrative_input = $this->getNarrativeInput($tag);
         $template = $narrative_input->fetch_assoc()['narrative_input'];
-        $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() , interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
-        echo "$check_ack";
+        $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() - interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
+
         $ack_result = $this->senslope_dbconn->query($check_ack);
-        // var_dump($ack_result->num_rows);
         if ($ack_result->num_rows == 0){
             $date = date("Y-m-d H:i:s");
             $timestamp_release_date = strtotime ( '-200 minute' , strtotime ( $date ) ) ;
@@ -4047,7 +4025,7 @@ class ChatMessageModel {
     }
 
     function fetchRoutineReminder() {
-        $routine_query = "SELECT * from ewi_backbone_template WHERE alert_status = 'Reminder';";
+        $routine_query = "SELECT * from ewi_backbone_template WHERE alert_status = 'GndMeasReminder';";
         $template = [];
         $execute_query = $this->dbconn->query($routine_query);
         if ($execute_query->num_rows > 0) {
