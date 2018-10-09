@@ -4586,7 +4586,6 @@ class ChatMessageModel {
     function checkForGndMeasSettings($time) {
         $settings_container = [];
         $template_query = "SELECT * FROM ground_meas_reminder_automation WHERE status = 0 and timestamp = '".$time."' order by site";
-        echo "$template_query";
         $this->checkConnectionDB($template_query);
         $result = $this->dbconn->query($template_query);
         while ($row = $result->fetch_assoc()) {
