@@ -4737,14 +4737,7 @@ class ChatMessageModel {
         $result = $this->senslope_dbconn->query($extended_sites_query);
 
         while($row = $result->fetch_assoc()) {
-
-            // $start = strtotime('tomorrow noon', strtotime($row['validity']));
-            // $end = strtotime('+2 days', $start);
-            // $day = 3 - ceil(($end - (60*60*12) - strtotime('now'))/(60*60*24));
-
-            // if ($day > 0 && $day <= 3) {
                 array_push($extended_sites, $row['site_code']);
-            // }
         }
 
         $final_sites = [];
@@ -4774,13 +4767,6 @@ class ChatMessageModel {
     }
 
     function insertGndMeasReminderSettings($site, $type, $template, $altered, $modified_by, $send_time) {
-        // if (strtotime(date('H:m:i A')) > strtotime('7:30 AM') && strtotime(date('H:m:i A')) < strtotime('11:30 AM')) {
-        //     $ground_time = '11:30 AM';
-        // } else if (strtotime(date('H:m:i A')) > strtotime('11:30 AM') && strtotime(date('H:m:i A')) < strtotime('2:30 PM')) {
-        //     $ground_time = '2:30 PM';
-        // } else {
-        //     $ground_time = '7:30 AM';
-        // }
         $template_query = "INSERT INTO ground_meas_reminder_automation VALUES (0,'".$type."','".$template."', 'LEWC', '".$site."','".$altered."','".$send_time."',0, '".$modified_by."')";
         $this->checkConnectionDB($template_query);
         $result = $this->dbconn->query($template_query);
