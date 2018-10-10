@@ -148,10 +148,12 @@ class ChatterBox implements MessageComponentInterface {
                     }else {
                         $last_name = $decodedText->data->lastname;
                     }
+                    $first_name = $decodedText->data->firstname;
+                    $first_name = explode(" (", $first_name);
                     $request = [
                         "office" => $decodedText->data->office,
                         "site" => $decodedText->data->site,
-                        "first_name" => $decodedText->data->firstname,
+                        "first_name" => $first_name[0],
                         "last_name" => $last_name,
                         "full_name" => $decodedText->data->full_name,
                         "number" => $decodedText->data->number
