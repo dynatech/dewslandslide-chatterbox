@@ -2046,7 +2046,6 @@ class ChatMessageModel {
 
     public function getContactSuggestions($queryName = "") {
         $sql = "SELECT * FROM (SELECT UPPER(CONCAT(sites.site_code,' ',user_organization.org_name,' - ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN user_organization ON users.user_id = user_organization.user_id RIGHT JOIN sites ON sites.site_id = user_organization.fk_site_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id UNION SELECT UPPER(CONCAT(dewsl_teams.team_name,' - ',users.salutation,' ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN dewsl_team_members ON users.user_id = dewsl_team_members.users_users_id RIGHT JOIN dewsl_teams ON dewsl_team_members.dewsl_teams_team_id = dewsl_teams.team_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id) as fullcontact WHERE fullname LIKE '%$queryName%' or id LIKE '%$queryName%'";
-        echo $sql;
         $this->checkConnectionDB($sql);
         $result = $this->dbconn->query($sql);
 
@@ -2612,21 +2611,13 @@ class ChatMessageModel {
                             $flag = false;
                             echo $e->getMessage();
                         }
-                    } else if ($data->numbers[$num_counter]->mobile_number == "") {
-                        // BLANK NUMBER
-                        echo "\nBLANK NUMBER!";
-                        echo "\n";                        
+                    } else if ($data->numbers[$num_counter]->mobile_number == "") {                    
                         try {
                             $num_exist = "DELETE FROM user_mobile WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
                             $result = $this->dbconn->query($num_exist);
 
                             $last_insert_mobile_id = $this->getLastInsertID();
 
-                            echo "\nLast inserted ID\n";
-                            var_dump($last_insert_mobile_id);
-                            echo "\n";
-
-                            /* Update user_ewi_status */
                             if ($data->ewi_recipient == "") {
                                 try {
                                     $num_exist = "DELETE FROM user_ewi_status WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
@@ -2648,11 +2639,7 @@ class ChatMessageModel {
                             $flag = false;
                             echo $e->getMessage();
                         }
-                    } else {
-                        // NEW NUMBER
-                        echo "\nTHIS A NEW NUMBER";
-                        var_dump($data->numbers[$num_counter]->mobile_number);
-                        echo "\n";                        
+                    } else {                      
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -2661,11 +2648,6 @@ class ChatMessageModel {
 
                             $last_insert_mobile_id = $this->getLastInsertID();
 
-                            echo "\nLast inserted ID\n";
-                            var_dump($last_insert_mobile_id);
-                            echo "\n";
-
-                            /* Update user_ewi_status */
                             if ($data->ewi_recipient == "") {
                                 try {
                                     $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$last_insert_mobile_id."','0','Inactive','".$data->user_id."')";
@@ -4559,7 +4541,7 @@ class ChatMessageModel {
         $sql = "SELECT * FROM gintags 
                 INNER JOIN smsinbox_users ON smsinbox_users.inbox_id = table_element_id 
                 INNER JOIN gintags_reference ON gintags.tag_id_fk = gintags_reference.tag_id
-                where (gintags_reference.tag_name = '#CantSendGroundMeas' OR gintags_reference.tag_name = '#GroundMeas' OR gintags_reference.tag_name = '#GroundObs') AND smsinbox_users.ts_sms < '".date('Y-m-d ').$ground_time."' AND smsinbox_users.ts_sms > '".$current_date."' limit 100;";      
+                INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id where (gintags_reference.tag_name = '#CantSendGroundMeas' OR gintags_reference.tag_name = '#GroundMeas' OR gintags_reference.tag_name = '#GroundObs') AND smsinbox_users.ts_sms < '".date('Y-m-d ').$ground_time."' AND smsinbox_users.ts_sms > '".$current_date."' limit 100;";
         $result = $this->dbconn->query($sql);
         if ($result->num_rows > 0) {
             foreach ($result as $tagged) {

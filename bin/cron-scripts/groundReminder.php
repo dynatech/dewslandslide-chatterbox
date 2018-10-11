@@ -1,5 +1,5 @@
 <?php
-    $credentials = include('../utils/config.php');
+    $credentials = include('../../utils/config.php');
 
     class WebsocketClient {
         private $_Socket = null;

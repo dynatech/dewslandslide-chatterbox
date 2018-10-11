@@ -431,7 +431,7 @@ class ChatterBox implements MessageComponentInterface {
                             if ($site == 'msl' || $site == 'msu') {
                                 $site = 'mes';
                             }
-                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site, $type, $template_gnd_meas, 0, 'default');
+                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site, $type, $template_gnd_meas, 0, 'default' , $ground_time);
                         } 
                     }
                 }
@@ -443,7 +443,9 @@ class ChatterBox implements MessageComponentInterface {
                             if ($site['site_code'] == 'msl' || $site['site_code'] == 'msu') {
                                 $site['site_code'] = 'mes';
                             }
-                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site['site_code'], $type, $template_gnd_meas, 0, 'default');
+
+                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site['site_code'], $type, $template_gnd_meas, 0, 'default' , $ground_time);
+
                         } 
                     }
                 }
@@ -455,7 +457,7 @@ class ChatterBox implements MessageComponentInterface {
                             if ($site == 'msl' || $site == 'msu') {
                                 $site = 'mes';
                             }
-                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site, $type, $template_gnd_meas, 0, 'default');
+                            $set_gnd_meas_reminder = $this->chatModel->insertGndMeasReminderSettings($site, $type, $template_gnd_meas, 0, 'default' , $ground_time);
                         } 
                     }
                 }
