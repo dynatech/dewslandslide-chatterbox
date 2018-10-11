@@ -470,6 +470,15 @@ class ChatterBox implements MessageComponentInterface {
                 }
                 $exchanges = $this->chatModel->sendSms($temp_mobile_id,$decodedText->msg);
                 $from->send(json_encode($exchanges));
+            } else if ($msgType == "getSiteDetails") {
+                $site_details = [];
+                $samar_sites = ["jor", "bar", "ime", "lpa", "hin", "lte", "par", "lay"];
+                foreach ($samar_sites as $site) {
+                    array_push($site_details, $this->chatModel->getSiteDetails($site));
+                }
+                $full_data['data'] = $site_details;
+                $full_data['type'] = "fetchedSamarSites";
+                $from->send(json_encode($full_data));
             } else if ($msgType == "searchViaTsSent") {
                 
             } else if ($msgType == "searchViaTsWritten") {

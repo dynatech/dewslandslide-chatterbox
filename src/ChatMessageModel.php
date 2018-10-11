@@ -2045,8 +2045,8 @@ class ChatMessageModel {
     }
 
     public function getContactSuggestions($queryName = "") {
-        $sql = "SELECT * FROM (SELECT UPPER(CONCAT(sites.site_code,' ',user_organization.org_name,' - ',users.lastname,', ',users.firstname)) as fullname,users.user_id as id FROM users INNER JOIN user_organization ON users.user_id = user_organization.user_id RIGHT JOIN sites ON sites.site_id = user_organization.fk_site_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id UNION SELECT UPPER(CONCAT(dewsl_teams.team_name,' - ',users.salutation,' ',users.lastname,', ',users.firstname)) as fullname,users.user_id as id FROM users INNER JOIN dewsl_team_members ON users.user_id = dewsl_team_members.users_users_id RIGHT JOIN dewsl_teams ON dewsl_team_members.dewsl_teams_team_id = dewsl_teams.team_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id) as fullcontact WHERE fullname LIKE '%$queryName%' or id LIKE '%$queryName%'";
-
+        $sql = "SELECT * FROM (SELECT UPPER(CONCAT(sites.site_code,' ',user_organization.org_name,' - ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN user_organization ON users.user_id = user_organization.user_id RIGHT JOIN sites ON sites.site_id = user_organization.fk_site_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id UNION SELECT UPPER(CONCAT(dewsl_teams.team_name,' - ',users.salutation,' ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN dewsl_team_members ON users.user_id = dewsl_team_members.users_users_id RIGHT JOIN dewsl_teams ON dewsl_team_members.dewsl_teams_team_id = dewsl_teams.team_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id) as fullcontact WHERE fullname LIKE '%$queryName%' or id LIKE '%$queryName%'";
+        echo $sql;
         $this->checkConnectionDB($sql);
         $result = $this->dbconn->query($sql);
 
@@ -2059,6 +2059,7 @@ class ChatMessageModel {
             while ($row = $result->fetch_assoc()) {
                 $dbreturn[$ctr]['fullname'] = $this->convertNameToUTF8($row['fullname']);
                 $dbreturn[$ctr]['id'] = $row['id'];
+                $dbreturn[$ctr]['number'] = $row['number'];
                 $ctr = $ctr + 1;
             }
 
@@ -4736,14 +4737,7 @@ class ChatMessageModel {
         $result = $this->senslope_dbconn->query($extended_sites_query);
 
         while($row = $result->fetch_assoc()) {
-
-            // $start = strtotime('tomorrow noon', strtotime($row['validity']));
-            // $end = strtotime('+2 days', $start);
-            // $day = 3 - ceil(($end - (60*60*12) - strtotime('now'))/(60*60*24));
-
-            // if ($day > 0 && $day <= 3) {
                 array_push($extended_sites, $row['site_code']);
-            // }
         }
 
         $final_sites = [];
@@ -4773,13 +4767,6 @@ class ChatMessageModel {
     }
 
     function insertGndMeasReminderSettings($site, $type, $template, $altered, $modified_by, $send_time) {
-        // if (strtotime(date('H:m:i A')) > strtotime('7:30 AM') && strtotime(date('H:m:i A')) < strtotime('11:30 AM')) {
-        //     $ground_time = '11:30 AM';
-        // } else if (strtotime(date('H:m:i A')) > strtotime('11:30 AM') && strtotime(date('H:m:i A')) < strtotime('2:30 PM')) {
-        //     $ground_time = '2:30 PM';
-        // } else {
-        //     $ground_time = '7:30 AM';
-        // }
         $template_query = "INSERT INTO ground_meas_reminder_automation VALUES (0,'".$type."','".$template."', 'LEWC', '".$site."','".$altered."','".$send_time."',0, '".$modified_by."')";
         $this->checkConnectionDB($template_query);
         $result = $this->dbconn->query($template_query);
