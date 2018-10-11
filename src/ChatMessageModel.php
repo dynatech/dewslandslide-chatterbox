@@ -4216,9 +4216,9 @@ class ChatMessageModel {
         $current_date = date('Y-m-d H:i:s');//H:i:s
         $final_template = $raw_data['backbone'][0]['template'];
         $site_details = $this->generateSiteDetails($raw_data);
-        $greeting = $this->generateGreetingsMessage(strtotime($current_date));
+        $greeting = $this->generateGreetingsMessage(strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])));
 
-        if($on_set == true){
+        if(isset($on_set) && $on_set == true){
             $time_messages = $this->generateTimeMessages(strtotime($raw_data['data_timestamp']));
         }else {
             $time_messages = $this->generateTimeMessages(strtotime(date('Y-m-d H:i:s', strtotime('+30 minutes', strtotime($raw_data['data_timestamp'])))));
@@ -4324,6 +4324,7 @@ class ChatMessageModel {
     }
 
     function generateGreetingsMessage($release_time) {
+        var_dump($release_time);
         if( $release_time >= strtotime(date("Y-m-d 18:00:00")) && $release_time <= strtotime(date("Y-m-d 23:59:59")) ){
           $greeting = "gabi";
         } 
