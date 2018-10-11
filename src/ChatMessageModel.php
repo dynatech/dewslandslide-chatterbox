@@ -2612,21 +2612,13 @@ class ChatMessageModel {
                             $flag = false;
                             echo $e->getMessage();
                         }
-                    } else if ($data->numbers[$num_counter]->mobile_number == "") {
-                        // BLANK NUMBER
-                        echo "\nBLANK NUMBER!";
-                        echo "\n";                        
+                    } else if ($data->numbers[$num_counter]->mobile_number == "") {                    
                         try {
                             $num_exist = "DELETE FROM user_mobile WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
                             $result = $this->dbconn->query($num_exist);
 
                             $last_insert_mobile_id = $this->getLastInsertID();
 
-                            echo "\nLast inserted ID\n";
-                            var_dump($last_insert_mobile_id);
-                            echo "\n";
-
-                            /* Update user_ewi_status */
                             if ($data->ewi_recipient == "") {
                                 try {
                                     $num_exist = "DELETE FROM user_ewi_status WHERE mobile_id='".$data->numbers[$num_counter]->mobile_id."'";
@@ -2648,11 +2640,7 @@ class ChatMessageModel {
                             $flag = false;
                             echo $e->getMessage();
                         }
-                    } else {
-                        // NEW NUMBER
-                        echo "\nTHIS A NEW NUMBER";
-                        var_dump($data->numbers[$num_counter]->mobile_number);
-                        echo "\n";                        
+                    } else {                      
                         try {
                             // Get GSM ID
                             $mobile_gsm_id = $this->identifyGSMIDFromMobileNumber($data->numbers[$num_counter]->mobile_number);
@@ -2661,11 +2649,6 @@ class ChatMessageModel {
 
                             $last_insert_mobile_id = $this->getLastInsertID();
 
-                            echo "\nLast inserted ID\n";
-                            var_dump($last_insert_mobile_id);
-                            echo "\n";
-
-                            /* Update user_ewi_status */
                             if ($data->ewi_recipient == "") {
                                 try {
                                     $insert_ewi_status = "INSERT INTO user_ewi_status VALUES ('".$last_insert_mobile_id."','0','Inactive','".$data->user_id."')";
@@ -4559,7 +4542,6 @@ class ChatMessageModel {
                 INNER JOIN smsinbox_users ON smsinbox_users.inbox_id = table_element_id 
                 INNER JOIN gintags_reference ON gintags.tag_id_fk = gintags_reference.tag_id
                 INNER JOIN user_mobile ON smsinbox_users.mobile_id = user_mobile.mobile_id where (gintags_reference.tag_name = '#CantSendGroundMeas' OR gintags_reference.tag_name = '#GroundMeas' OR gintags_reference.tag_name = '#GroundObs') AND smsinbox_users.ts_sms < '".date('Y-m-d ').$ground_time."' AND smsinbox_users.ts_sms > '".$current_date."' limit 100;";
-        echo $sql;
         $result = $this->dbconn->query($sql);
         if ($result->num_rows > 0) {
             foreach ($result as $tagged) {
