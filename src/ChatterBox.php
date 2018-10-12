@@ -467,6 +467,15 @@ class ChatterBox implements MessageComponentInterface {
                     array_push($temp_mobile_id, $mobile_id['mobile_id']);
                 }
                 $exchanges = $this->chatModel->sendSms($temp_mobile_id,$decodedText->msg);
+                $auto_tag = $this->chatModel->autoTagMessage('86',$exchanges['convo_id'],$exchanges['timestamp'],'#GroundMeasReminder');// ID: 86 for SWAT Automation
+                
+                if ($decodedText->event_type == "event") {
+                    $sites_on_event = $this->chatModel->eventSites();
+                    foreach ($sites_on_event as $site_event) {
+                        $site_details = $this->chatModel->getSiteDetails($site_event['site_code']);
+                        $auto_narrative = $this->chatModel->autoNarrative(['LEWC'],$site_event['event_id'],$site_details['site_id'],date("Y-m-d H:i:s", time()),date("Y-m-d H:i:s", time()),"#GroundMeasReminder",$decodedText->msg);
+                    }
+                }
                 $from->send(json_encode($exchanges));
             } else if ($msgType == "getSiteDetails") {
                 $site_details = [];
