@@ -3893,22 +3893,24 @@ class ChatMessageModel {
         return $full_data;
     }
 
-    function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg, $previous_release_time) {
+    function autoNarrative($offices, $event_id, $site_id,$data_timestamp, $timestamp, $tag, $msg, $previous_release_time = "") {
         $narrative_input = $this->getNarrativeInput($tag);
         $template = $narrative_input->fetch_assoc()['narrative_input'];
-        $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() - interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
+        if ($tag == "#EwiMessage" || $tag == "#AlteredEwi") {
+            $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() - interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
 
-        $ack_result = $this->senslope_dbconn->query($check_ack);
-        if ($ack_result->num_rows == 0){
-            $date = date("Y-m-d H:i:s");
-            $timestamp_release_date = strtotime ( '-200 minute' , strtotime ( $date ) ) ;
-            $timestamp_release_date = date ( "Y-m-d H:i:s" , $timestamp_release_date );
+            $ack_result = $this->senslope_dbconn->query($check_ack);
+            if ($ack_result->num_rows == 0){
+                $date = date("Y-m-d H:i:s");
+                $timestamp_release_date = strtotime ( '-200 minute' , strtotime ( $date ) ) ;
+                $timestamp_release_date = date ( "Y-m-d H:i:s" , $timestamp_release_date );
 
-            $no_ack_narrative_input = $this->getNarrativeInput("#NoAckEwi");
-            $no_ack_template = $no_ack_narrative_input->fetch_assoc()['narrative_input'];
-            $no_ack_narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $previous_release_time, $no_ack_template, $msg);
-            $sql = "INSERT INTO narratives VALUES(0,'".$event_id."','".$timestamp_release_date."','".$no_ack_narrative."')";
-            $this->senslope_dbconn->query($sql);
+                $no_ack_narrative_input = $this->getNarrativeInput("#NoAckEwi");
+                $no_ack_template = $no_ack_narrative_input->fetch_assoc()['narrative_input'];
+                $no_ack_narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $previous_release_time, $no_ack_template, $msg);
+                $sql = "INSERT INTO narratives VALUES(0,'".$event_id."','".$timestamp_release_date."','".$no_ack_narrative."')";
+                $this->senslope_dbconn->query($sql);
+            }
         }
 
         $narrative = $this->parseTemplateCodes($offices, $site_id, $data_timestamp, $timestamp, $template, $msg);

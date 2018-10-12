@@ -91,7 +91,8 @@
             "type"=>"sendAutoGndMeasReminder",
             "offices"=>[$details['office_recipients']],
             "sitenames"=>[$details['site']],
-            "msg"=>$details['msg']
+            "msg"=>$details['msg'],
+            "event_type"=> $details['type']
             );
         $WebSocketClient = new WebsocketClient('localhost', 5050);
         $WebSocketClient->sendData(json_encode($toBeSent));
