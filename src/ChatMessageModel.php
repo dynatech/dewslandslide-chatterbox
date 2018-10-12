@@ -3252,8 +3252,6 @@ class ChatMessageModel {
        $numbers = $this->dbconn->query($get_numbers_query);
     }
 
-    // NEW CODE STARTS HERE
-
     function getMessageConversations($details, $limit = 20) {
         $inbox_outbox_collection = [];
         $temp_timestamp = [];
@@ -3300,6 +3298,7 @@ class ChatMessageModel {
 
         $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by timestamp order by timestamp desc limit 20;";
 
+        // echo $full_query;
         $fetch_convo = $this->dbconn->query($full_query);
         if ($fetch_convo->num_rows != 0) {
             while($row = $fetch_convo->fetch_assoc()) {
@@ -3474,9 +3473,9 @@ class ChatMessageModel {
     function getMobileDetails($details) {
         $mobile_number_container = [];
         if (isset($details->mobile_id) == false ) {
-            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE users.firstname LIKE '%".$details['first_name']."%' AND users.lastname LIKE '%".$details['last_name']."%' AND user_mobile.mobile_status = 1;";
+            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE users.firstname LIKE '%".$details['first_name']."%' AND users.lastname LIKE '%".$details['last_name']."%';";
         } else {
-            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE mobile_id = '".$details->mobile_id."' AND user_mobile.mobile_status = 1;";
+            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE mobile_id = '".$details->mobile_id."';";
         }
 
         $mobile_number = $this->dbconn->query($mobile_number_query);
