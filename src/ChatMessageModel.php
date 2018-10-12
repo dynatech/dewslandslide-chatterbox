@@ -280,8 +280,6 @@ class ChatMessageModel {
     }
 
     public function getLatestAlerts(){
-        $senslope_dbconn; // initialize a variable for analysis database connection
-        $this->switchDBforCB(); // switch database to senslopedb from comms_db to get data from senslopedb
         $query = "SELECT * FROM sites inner join public_alert_event alerts on sites.site_id=alerts.site_id inner join public_alert_release releases on alerts.latest_release_id = releases.release_id WHERE alerts.status <> 'finished' AND alerts.status <> 'invalid' AND alerts.status <> 'routine'"; 
         $this->checkConnectionDB($query);
         $alerts = $this->senslope_dbconn->query($query);
@@ -2045,7 +2043,8 @@ class ChatMessageModel {
     }
 
     public function getContactSuggestions($queryName = "") {
-        $sql = "SELECT * FROM (SELECT UPPER(CONCAT(sites.site_code,' ',user_organization.org_name,' - ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN user_organization ON users.user_id = user_organization.user_id RIGHT JOIN sites ON sites.site_id = user_organization.fk_site_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id UNION SELECT UPPER(CONCAT(dewsl_teams.team_name,' - ',users.salutation,' ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id FROM users INNER JOIN dewsl_team_members ON users.user_id = dewsl_team_members.users_users_id RIGHT JOIN dewsl_teams ON dewsl_team_members.dewsl_teams_team_id = dewsl_teams.team_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id) as fullcontact WHERE fullname LIKE '%$queryName%' or id LIKE '%$queryName%'";
+        $sql = "SELECT * FROM (SELECT UPPER(CONCAT(sites.site_code,' ',user_organization.org_name,' - ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id, user_mobile.mobile_status as status FROM users INNER JOIN user_organization ON users.user_id = user_organization.user_id RIGHT JOIN sites ON sites.site_id = user_organization.fk_site_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id UNION SELECT UPPER(CONCAT(dewsl_teams.team_name,' - ',users.salutation,' ',users.lastname,', ',users.firstname)) as fullname,user_mobile.sim_num as number,users.user_id as id,user_mobile.mobile_status as status FROM users INNER JOIN dewsl_team_members ON users.user_id = dewsl_team_members.users_users_id RIGHT JOIN dewsl_teams ON dewsl_team_members.dewsl_teams_team_id = dewsl_teams.team_id RIGHT JOIN user_mobile ON user_mobile.user_id = users.user_id) as fullcontact WHERE status = 1 and fullname LIKE '%$queryName%' or id LIKE '%$queryName%'";
+
         $this->checkConnectionDB($sql);
         $result = $this->dbconn->query($sql);
 
@@ -2063,7 +2062,6 @@ class ChatMessageModel {
             }
 
             $dbreturn = $this->utf8_encode_recursive($dbreturn);
-
             $fullData['data'] = $dbreturn;
         }
         else {
@@ -3476,9 +3474,9 @@ class ChatMessageModel {
     function getMobileDetails($details) {
         $mobile_number_container = [];
         if (isset($details->mobile_id) == false ) {
-            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE users.firstname LIKE '%".$details['first_name']."%' AND users.lastname LIKE '%".$details['last_name']."%';";
+            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE users.firstname LIKE '%".$details['first_name']."%' AND users.lastname LIKE '%".$details['last_name']."%' AND user_mobile.mobile_status = 1;";
         } else {
-            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE mobile_id = '".$details->mobile_id."';";
+            $mobile_number_query = "SELECT * FROM users NATURAL JOIN user_mobile WHERE mobile_id = '".$details->mobile_id."' AND user_mobile.mobile_status = 1;";
         }
 
         $mobile_number = $this->dbconn->query($mobile_number_query);
@@ -4306,7 +4304,6 @@ class ChatMessageModel {
     }
 
     function generateGreetingsMessage($release_time) {
-        var_dump($release_time);
         if( $release_time >= strtotime(date("Y-m-d 18:00:00")) && $release_time <= strtotime(date("Y-m-d 23:59:59")) ){
           $greeting = "gabi";
         } 
