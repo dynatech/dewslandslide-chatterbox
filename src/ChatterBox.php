@@ -289,7 +289,7 @@ class ChatterBox implements MessageComponentInterface {
                         break;  
                     case 'extended':
                         $alert_status = 'Extended';
-                        $offices = ['LEWC'];
+                        $offices = ['LEWC','BLGU','MLGU'];
                         $sites = [$decodedText->data->site_id];
                         $recipients = $this->chatModel->getMobileDetailsViaOfficeAndSitename($offices, $sites);
                         break;
