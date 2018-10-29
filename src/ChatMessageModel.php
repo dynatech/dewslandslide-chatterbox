@@ -3297,7 +3297,6 @@ class ChatMessageModel {
 
         $full_query = "SELECT * FROM (".$inbox_query." UNION ".$outbox_query.") as full_contact group by timestamp order by timestamp desc limit 20;";
 
-        // echo $full_query;
         $fetch_convo = $this->dbconn->query($full_query);
         if ($fetch_convo->num_rows != 0) {
             while($row = $fetch_convo->fetch_assoc()) {
@@ -3735,7 +3734,30 @@ class ChatMessageModel {
             $full_data['tag_status'] = $this->tagToNarratives($data);
             $full_data['status'] = true;
         }
+        
         return $full_data;
+    }
+
+    function getUserAndSiteAssociationViaMobile_id($mobile_id) {
+        $site_container = [];
+        $get_user_sites_associate = "SELECT 
+            user_mobile.user_id, fk_site_id, org_name, site_code
+        FROM
+            user_mobile
+                INNER JOIN
+            user_organization ON user_mobile.user_id = user_organization.user_id
+                INNER JOIN
+            sites ON user_organization.fk_site_id = sites.site_id
+        WHERE
+            mobile_id = '".$mobile_id."'";
+
+        $execute_query = $this->dbconn->query($get_user_sites_associate);
+        while ($row = $execute_query->fetch_assoc()) {
+            array_push($site_container, $row);
+        }
+
+        return $site_container;
+
     }
 
     function tagToNarratives($data) {
@@ -3754,14 +3776,17 @@ class ChatMessageModel {
                 $ongoing = $this->senslope_dbconn->query($get_ongoing_query);
 
                 while ($row = $ongoing->fetch_assoc()) {
-                    if (strtoupper($row['site_code']) == strtoupper($raw_office[0])) {
+                    if (in_array(strtoupper($row['site_code']),$data['site_code'])) {
                         array_push($event_container, $row);
                     }
                 }
                 // $time_sent = $this->setTimeSent($data['ts'], $data['time_sent']);
-                $narrative = $this->parseTemplateCodes($offices, $event_container[0]['site_id'], $data['ts'], $time_sent, $template, $data['msg'], $data['full_name']);
-                $sql = "INSERT INTO narratives VALUES(0,'".$event_container[0]['event_id']."','".$data['ts']."','".$narrative."')";
-                $result = $this->senslope_dbconn->query($sql);
+                foreach ($event_container as $sites) {
+                    $narrative = $this->parseTemplateCodes($offices, $sites['site_id'], $data['ts'], $time_sent, $template, $data['msg'], $data['full_name']);
+                    $sql = "INSERT INTO narratives VALUES(0,'".$sites['event_id']."','".$data['ts']."','".$narrative."')";
+                    $result = $this->senslope_dbconn->query($sql);
+                }
+
             } else {
                 // Add error message
             }
@@ -3787,7 +3812,7 @@ class ChatMessageModel {
                 $ongoing = $this->senslope_dbconn->query($get_ongoing_query);
 
                 while ($row = $ongoing->fetch_assoc()) {
-                    if ($row['site_code'] == $site_code) {
+                    if (in_array(strtoupper($row['site_code']),$data['site_code'])) {
                         array_push($event_container, $row);
                     }
                 }
@@ -3800,9 +3825,11 @@ class ChatMessageModel {
                     while ($row = $get_office->fetch_assoc()) {
                         array_push($offices, $row['org_name']);
                     }
-                    $narrative = $this->parseTemplateCodes($offices, $event_container[0]['site_id'], $data['ts'], $data['time_sent'], $template, $data['msg']);
-                    $sql = "INSERT INTO narratives VALUES(0,'".$event_container[0]['event_id']."','".$data['ts']."','".$narrative."')";
-                    $result = $this->senslope_dbconn->query($sql);
+                    foreach ($event_container as $sites) {
+                        $narrative = $this->parseTemplateCodes($offices, $sites['site_id'], $data['ts'], $data['time_sent'], $template, $data['msg']);
+                        $sql = "INSERT INTO narratives VALUES(0,'".$sites['event_id']."','".$data['ts']."','".$narrative."')";
+                        $result = $this->senslope_dbconn->query($sql);
+                    }
                 }
 
             } else {
