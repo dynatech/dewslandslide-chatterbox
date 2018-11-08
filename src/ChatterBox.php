@@ -493,6 +493,12 @@ class ChatterBox implements MessageComponentInterface {
                 
             } else if ($msgType == "searchViaUnknownNumber") {
 
+            } else if ($msgType == "loadOldMessages") {
+                $recipients = $decodedText->recipients;
+                $last_inbox_ts = $decodedText->last_inbox_ts;
+                $last_outbox_ts = $decodedText->last_outbox_ts;
+                $exchanges = $this->chatModel->getOldMessageConversations($last_inbox_ts, $last_outbox_ts, $recipients);
+                $from->send(json_encode($exchanges));
             } else {
                 echo "Message will be ignored\n";
             }
