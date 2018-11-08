@@ -78,7 +78,7 @@
 		}
 		$memcached->add("smsoutbox_last_id",$sms_collection[0]['outbox_id']);
 	} else {
-		$sms_collection = $smssent_lib->getLatestSentMessagesUsingMemcachedID($memcached->get("smsoutbox_last_id"));
+		$sms_collection = $smssent_lib->getLatestSentMessagesUsingMemcachedID($connect['cbx_conn'], $memcached->get("smsoutbox_last_id"));
 		if (sizeOf($sms_collection) > 0) {
 			foreach ($sms_collection as $sms) {
 				$report = $smssent_lib->analyzeSendingLatency($sms);
@@ -89,6 +89,6 @@
 		} else {
 			echo "No new messages sent..\n\n";
 		}
-		$memcached->replaceByKey("smsoutbox_last_id",$sms_collection[0]['outbox_id']);
+		$memcached->replace("smsoutbox_last_id",$sms_collection[0]['outbox_id']);
 	}
 ?>
