@@ -12,7 +12,7 @@
         	return $outbox_container;
         }
 
-        public function getLatestSentMessagesUsingMemcachedID($cached_id) {
+        public function getLatestSentMessagesUsingMemcachedID($conn, $cached_id) {
         	$outbox_container = [];
         	$outbox_query = "SELECT smsoutbox_users.outbox_id, ts_written, ts_sent, send_status FROM smsoutbox_users INNER JOIN smsoutbox_user_status ON smsoutbox_users.outbox_id = smsoutbox_user_status.outbox_id where ts_written > (now() - interval 4 hour) AND smsoutbox_users.outbox_id > ".$cached_id." order by smsoutbox_users.outbox_id desc";
         	$result = $conn->query($outbox_query);
