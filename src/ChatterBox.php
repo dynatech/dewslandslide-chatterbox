@@ -277,12 +277,12 @@ class ChatterBox implements MessageComponentInterface {
                     case 'event':
                         if ($internal_alert[0] != "A3") {
                             $alert_status = 'Event';
-                            $offices = ['BLGU','PLGU','LEWC','MLGU','REGION-8'];
+                            $offices = ['BLGU','PLGU','LEWC','MLGU','REGION: 8'];
                             $sites = [$decodedText->data->site_id];
                             $recipients = $this->chatModel->getMobileDetailsViaOfficeAndSitename($offices, $sites);
                         } else {
                              $alert_status = 'Event-Level3';
-                            $offices = ['BLGU','PLGU','LEWC','MLGU','REGION-8'];
+                            $offices = ['BLGU','PLGU','LEWC','MLGU','REGION: 8'];
                             $sites = [$decodedText->data->site_id];
                             $recipients = $this->chatModel->getMobileDetailsViaOfficeAndSitename($offices, $sites);                           
                         }
@@ -469,12 +469,15 @@ class ChatterBox implements MessageComponentInterface {
                 }
                 $exchanges = $this->chatModel->sendSms($temp_mobile_id,$decodedText->msg);
                 $auto_tag = $this->chatModel->autoTagMessage('86',$exchanges['convo_id'],$exchanges['timestamp'],'#GroundMeasReminder');// ID: 86 for SWAT Automation
-                
+
                 if ($decodedText->event_type == "event") {
                     $sites_on_event = $this->chatModel->eventSites();
                     foreach ($sites_on_event as $site_event) {
-                        $site_details = $this->chatModel->getSiteDetails($site_event['site_code']);
-                        $auto_narrative = $this->chatModel->autoNarrative(['LEWC'],$site_event['event_id'],$site_details['site_id'],date("Y-m-d H:i:s", time()),date("Y-m-d H:i:s", time()),"#GroundMeasReminder",$decodedText->msg);
+                        if (strtoupper($site_event['site_code']) == strtoupper($decodedText->sitenames[0])) {
+                            $site_details = $this->chatModel->getSiteDetails($site_event['site_code']);
+                            $auto_narrative = $this->chatModel->autoNarrative(['LEWC'],$site_event['event_id'],$site_details['site_id'],date("Y-m-d H:i:s", time()),date("Y-m-d H:i:s", time()),"#GroundMeasReminder",$decodedText->msg); 
+                        }
+
                     }
                 }
                 $from->send(json_encode($exchanges));
