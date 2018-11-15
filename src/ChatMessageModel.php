@@ -9,6 +9,7 @@ class ChatMessageModel {
     public function __construct() {
         $this->initDBforCB();
         $this->switchDBforCB();
+        date_default_timezone_set('Asia/Manila');
     }
 
     public function initDBforCB() {

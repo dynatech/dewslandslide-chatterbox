@@ -1,6 +1,6 @@
 <?php
     $credentials = include('../../utils/config.php');
-
+    date_default_timezone_set('Asia/Manila');
     class WebsocketClient {
         private $_Socket = null;
         public function __construct($host, $port) {
@@ -85,7 +85,7 @@
         echo "0 results";
         return;
     }
-
+    
     foreach ($ground_meas_collection as $details) {
         $toBeSent = (object) array(
             "type"=>"sendAutoGndMeasReminder",
