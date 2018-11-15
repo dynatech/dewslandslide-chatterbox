@@ -387,6 +387,7 @@ class ChatMessageModel {
                                             CONCAT(users.lastname, ', ', users.firstname) AS full_name,
                                             user_mobile.sim_num,
                                             user_mobile.mobile_id,
+                                            user_mobile.user_id,
                                             smsinbox_users.sms_msg,
                                             smsinbox_users.ts_sms
                                         FROM
@@ -397,8 +398,9 @@ class ChatMessageModel {
                                             users ON user_mobile.user_id = users.user_id
                                         WHERE
                                             smsinbox_users.ts_sms > (NOW() - INTERVAL 7 DAY)
-                                                AND users.firstname LIKE '%UNKNOWN_%';";
+                                                AND users.firstname LIKE '%UNKNOWN_%' ORDER by ts_sms desc;";
         $sms_result_from_period = $this->dbconn->query($get_all_unregistered_query);
+        
         $full_data['type'] = 'smsloadunregisteredinbox';
         $all_messages = [];
         $ctr = 0;
@@ -409,11 +411,13 @@ class ChatMessageModel {
                 $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
                 $all_messages[$ctr]['user_number'] = $normalized_number;
                 $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                $all_messages[$ctr]['user_id'] = $row['user_id'];
                 $all_messages[$ctr]['msg'] = $row['sms_msg'];
                 $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
                 $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
                 $ctr++;
             }
+            // array_reverse($all_messages);    
             $full_data['data'] = $all_messages;
         } else {
             echo "0 results\n";
