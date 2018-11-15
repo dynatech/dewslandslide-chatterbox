@@ -3558,12 +3558,14 @@ class ChatMessageModel {
         $sms_status_container = [];
         $current_ts = date("Y-m-d H:i:s", time());
         foreach ($recipients as $recipient) {
-            $insert_smsoutbox_query = "INSERT INTO smsoutbox_users VALUES (0,'".$current_ts."','central','".$message."')";
-            $smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
+            $insert_smsoutbox_query = 'INSERT INTO smsoutbox_users VALUES (0,"'.$current_ts.'","central","'.$message.'")';
+            echo $insert_smsoutbox_query;
+		$smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
             $convo_id = $this->dbconn->insert_id;
             if ($smsoutbox == true) {
                 $insert_smsoutbox_status = "INSERT INTO smsoutbox_user_status VALUES (0,'".$this->dbconn->insert_id."','".$recipient."',null,0,0,'".$this->getGsmId($recipient)."')";
-                $smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
+	echo $insert_smsoutbox_status;                
+$smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
                 if ($smsoutbox_status == true) {
                     $stats = [
                         "status" => $smsoutbox_status,

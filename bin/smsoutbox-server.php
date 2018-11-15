@@ -1,5 +1,5 @@
 <?php
-	$credentials = include('../utils/config.php');
+	$credentials = include('/var/www/chatterbox/utils/config.php');
 	class OutboxServer {
 		private $_Socket = null;
 

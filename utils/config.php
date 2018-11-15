@@ -7,7 +7,7 @@
 		    'dbpass' => 'NaCAhztBgYZ3HwTkvHwwGVtJn5sVMFgg'
 		    ],
 		"wsscredentials" => [
-			'host' => 'localhost',
+			'host' => '192.168.150.80',
 			'port' => '5050'
 		]
 	];

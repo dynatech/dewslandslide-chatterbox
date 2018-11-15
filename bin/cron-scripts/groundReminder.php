@@ -1,6 +1,6 @@
 <?php
-    $credentials = include('../../utils/config.php');
     date_default_timezone_set('Asia/Manila');
+    $credentials = include('/var/www/chatterbox/utils/config.php');
     class WebsocketClient {
         private $_Socket = null;
         public function __construct($host, $port) {
