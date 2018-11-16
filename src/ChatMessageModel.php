@@ -9,6 +9,7 @@ class ChatMessageModel {
     public function __construct() {
         $this->initDBforCB();
         $this->switchDBforCB();
+        date_default_timezone_set('Asia/Manila');
     }
 
     public function initDBforCB() {
@@ -358,17 +359,21 @@ class ChatMessageModel {
         $all_messages = [];
         $ctr = 0;
 
+        $temp_senders = [];
         if ($sms_result_from_period->num_rows > 0) {
             while ($row = $sms_result_from_period->fetch_assoc()) {
-                $normalized_number = substr($row["sim_num"], -10);
-                $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
-                $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
-                $all_messages[$ctr]['user_number'] = $normalized_number;
-                $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
-                $all_messages[$ctr]['msg'] = $row['sms_msg'];
-                $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
-                $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
-                $ctr++;
+                if (in_array($row['mobile_id'], $temp_senders, TRUE) != true) {
+                    $normalized_number = substr($row["sim_num"], -10);
+                    $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
+                    $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
+                    $all_messages[$ctr]['user_number'] = $normalized_number;
+                    $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                    $all_messages[$ctr]['msg'] = $row['sms_msg'];
+                    $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                    $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);  
+                    array_push($temp_senders, $row['mobile_id']);
+                    $ctr++;
+                } 
             }
 
             $full_data['data'] = $all_messages;
@@ -376,7 +381,6 @@ class ChatMessageModel {
             echo "0 results\n";
             $full_data['data'] = null;
         }
-
         return $this->utf8_encode_recursive($full_data);
     }
 
@@ -403,20 +407,23 @@ class ChatMessageModel {
         $full_data['type'] = 'smsloadunregisteredinbox';
         $all_messages = [];
         $ctr = 0;
+        $temp_senders = [];
         if ($sms_result_from_period->num_rows > 0) {
             while ($row = $sms_result_from_period->fetch_assoc()) {
-                $normalized_number = substr($row["sim_num"], -10);
-                $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
-                $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
-                $all_messages[$ctr]['user_number'] = $normalized_number;
-                $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
-                $all_messages[$ctr]['user_id'] = $row['user_id'];
-                $all_messages[$ctr]['msg'] = $row['sms_msg'];
-                $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
-                $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
-                $ctr++;
+                if (in_array($row['mobile_id'], $temp_senders, TRUE) != true) {
+                    $normalized_number = substr($row["sim_num"], -10);
+                    $all_messages[$ctr]['sms_id'] = $row['inbox_id'];
+                    $all_messages[$ctr]['full_name'] = strtoupper($row['full_name']);
+                    $all_messages[$ctr]['user_number'] = $normalized_number;
+                    $all_messages[$ctr]['mobile_id'] = $row['mobile_id'];
+                    $all_messages[$ctr]['user_id'] = $row['user_id'];
+                    $all_messages[$ctr]['msg'] = $row['sms_msg'];
+                    $all_messages[$ctr]['ts_received'] = $row['ts_sms'];
+                    $all_messages[$ctr]['network'] = $this->identifyMobileNetwork($row['sim_num']);
+                    $ctr++;
+                    array_push($temp_senders, $row['mobile_id']);
+                } 
             }
-            // array_reverse($all_messages);    
             $full_data['data'] = $all_messages;
         } else {
             echo "0 results\n";
@@ -2513,40 +2520,6 @@ class ChatMessageModel {
                 }
             }
 
-            // if (sizeof($data->landline) == 0) {
-            //     try {
-            //         $landline_exist = "DELETE FROM user_landlines WHERE user_id='".$data->id."'";
-            //         $result = $this->dbconn->query($landline_exist);
-            //     } catch (Exception $e) {
-            //         $flag = false;
-            //     }
-            // } else {
-            //     for ($landline_counter = 0; $landline_counter < sizeof($data->landline); $landline_counter++) {
-            //         if ($data->landline[$landline_counter]->landline_id != "" && $data->landline[$landline_counter]->landline_number != "") {
-            //             try {
-            //                 $landline_exist = "UPDATE user_landlines SET landline_num = '".$data->landline[$landline_counter]->landline_number."', remarks = '".$data->landline[$landline_counter]->landline_remarks."' WHERE landline_id='".$data->landline[$landline_counter]->landline_id."'";
-            //                 $result = $this->dbconn->query($landline_exist);
-            //             } catch (Exception $e) {
-            //                 $flag = false;
-            //             }
-            //         } else if ($data->landline[$landline_counter]->landline_number == "") {
-            //             try {
-            //                 $landline_exist = "DELETE FROM user_landlines WHERE landline_id='".$data->landline[$landline_counter]->landline_id."'";
-            //                 $result = $this->dbconn->query($landline_exist);
-            //             } catch (Exception $e) {
-            //                 $flag = false;
-            //             }
-            //         } else {
-            //             try {
-            //                 $new_landline = "INSERT INTO user_landlines VALUES (0,'$data->id','".$data->landline[$landline_counter]->landline_number."','".$data->landline[$landline_counter]->landline_remarks."')";
-            //                 $result = $this->dbconn->query($new_landline); 
-            //             } catch (Exception $e) {
-            //                 $flag = false;
-            //             }
-            //         }
-            //     }
-            // }
-
             if ($flag == false) {
                 $return_data['return_msg'] = "Error occured, please refresh the page and try again.";
             } else {
@@ -3555,13 +3528,14 @@ class ChatMessageModel {
 
     function sendSms($recipients, $message) {
         $sms_status_container = [];
+        $convo_id_container = [];
         $current_ts = date("Y-m-d H:i:s", time());
         foreach ($recipients as $recipient) {
-            $insert_smsoutbox_query = "INSERT INTO smsoutbox_users VALUES (0,'".$current_ts."','central','".$message."')";
-            $smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
-            $convo_id = $this->dbconn->insert_id;
+            $insert_smsoutbox_query = 'INSERT INTO smsoutbox_users VALUES (0,"'.$current_ts.'","central","'.$message.'")';
+		    $smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
+            array_push($convo_id_container, $this->dbconn->insert_id);
             if ($smsoutbox == true) {
-                $insert_smsoutbox_status = "INSERT INTO smsoutbox_user_status VALUES (0,'".$this->dbconn->insert_id."','".$recipient."',null,0,0,'".$this->getGsmId($recipient)."')";
+                $insert_smsoutbox_status = "INSERT INTO smsoutbox_user_status VALUES (0,'".$this->dbconn->insert_id."','".$recipient."',null,0,0,'".$this->getGsmId($recipient)."')";      
                 $smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
                 if ($smsoutbox_status == true) {
                     $stats = [
@@ -3590,7 +3564,7 @@ class ChatMessageModel {
             "user" => "You",
             "web_status" => null,
             "gsm_id" => 1,
-            "convo_id" => $convo_id,
+            "convo_id" => $convo_id_container,
             "sms_msg" => $message,
             "data" => $sms_status_container
         ];
