@@ -3924,8 +3924,9 @@ class ChatMessageModel {
         $narrative_input = $this->getNarrativeInput($tag);
         $template = $narrative_input->fetch_assoc()['narrative_input'];
         if (($tag == "#EwiMessage" || $tag == "#AlteredEwi") && strtotime ('-30 minute' , strtotime ($data_timestamp)) != strtotime($event_start)) {
-            $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' < (now() - interval 210 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
-
+            
+            $check_ack = "SELECT * FROM narratives WHERE '".$data_timestamp."' > (now() - interval 240 minute) AND event_id = '".$event_id."' AND narrative LIKE '%EWI SMS acknowledged by%'";
+            
             $ack_result = $this->senslope_dbconn->query($check_ack);
             if ($ack_result->num_rows == 0){
                 $timestamp_release_date = strtotime ( '-1 second' , strtotime ( $data_timestamp ) ) ;
