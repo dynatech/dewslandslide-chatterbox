@@ -336,7 +336,9 @@ class ChatterBox implements MessageComponentInterface {
                     $temp_site = $temp_org[0];
                     array_push($recipients_to_tag,$temp_org[1]);
                     array_push($status,$temp);
-                    array_push($gintag_status, $this->chatModel->autoTagMessage($decodedText->account_id,$send_status['convo_id'],$send_status['timestamp']));
+                    foreach ($send_status['convo_id'] as $convo_id) {
+                        array_push($gintag_status, $this->chatModel->autoTagMessage($decodedText->account_id,$convo_id,$send_status['timestamp']));
+                    }
                 }
                 $full_data['type'] = "sentEwiDashboard";
                 $full_data['statuses'] = $status;
@@ -468,8 +470,9 @@ class ChatterBox implements MessageComponentInterface {
                     array_push($temp_mobile_id, $mobile_id['mobile_id']);
                 }
                 $exchanges = $this->chatModel->sendSms($temp_mobile_id,$decodedText->msg);
-                $auto_tag = $this->chatModel->autoTagMessage('86',$exchanges['convo_id'],$exchanges['timestamp'],'#GroundMeasReminder');// ID: 86 for SWAT Automation
-
+                foreach ($exchanges['convo_id'] as $convo_id) {
+                    $auto_tag = $this->chatModel->autoTagMessage('86',$convo_id,$exchanges['timestamp'],'#GroundMeasReminder');// ID: 86 for SWAT Automation
+                }
                 if ($decodedText->event_type == "event") {
                     $sites_on_event = $this->chatModel->eventSites();
                     foreach ($sites_on_event as $site_event) {

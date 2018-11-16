@@ -3528,16 +3528,15 @@ class ChatMessageModel {
 
     function sendSms($recipients, $message) {
         $sms_status_container = [];
+        $convo_id_container = [];
         $current_ts = date("Y-m-d H:i:s", time());
         foreach ($recipients as $recipient) {
             $insert_smsoutbox_query = 'INSERT INTO smsoutbox_users VALUES (0,"'.$current_ts.'","central","'.$message.'")';
-            echo $insert_smsoutbox_query;
-		$smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
-            $convo_id = $this->dbconn->insert_id;
+		    $smsoutbox = $this->dbconn->query($insert_smsoutbox_query);
+            array_push($convo_id_container, $this->dbconn->insert_id);
             if ($smsoutbox == true) {
-                $insert_smsoutbox_status = "INSERT INTO smsoutbox_user_status VALUES (0,'".$this->dbconn->insert_id."','".$recipient."',null,0,0,'".$this->getGsmId($recipient)."')";
-	echo $insert_smsoutbox_status;                
-$smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
+                $insert_smsoutbox_status = "INSERT INTO smsoutbox_user_status VALUES (0,'".$this->dbconn->insert_id."','".$recipient."',null,0,0,'".$this->getGsmId($recipient)."')";      
+                $smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
                 if ($smsoutbox_status == true) {
                     $stats = [
                         "status" => $smsoutbox_status,
@@ -3565,7 +3564,7 @@ $smsoutbox_status = $this->dbconn->query($insert_smsoutbox_status);
             "user" => "You",
             "web_status" => null,
             "gsm_id" => 1,
-            "convo_id" => $convo_id,
+            "convo_id" => $convo_id_container,
             "sms_msg" => $message,
             "data" => $sms_status_container
         ];

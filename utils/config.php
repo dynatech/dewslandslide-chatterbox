@@ -7,21 +7,8 @@
 		    'dbpass' => 'NaCAhztBgYZ3HwTkvHwwGVtJn5sVMFgg'
 		    ],
 		"wsscredentials" => [
-			'host' => '192.168.150.80',
+			'host' => 'localhost',
 			'port' => '5050'
 		]
 	];
-
-	// return [
-	//     "dbcredentials" => [
-	// 	    'dbhost' => 'localhost',
-	// 	    'dbname' => 'comms_db',
-	// 	    'dbuser' => 'root',
-	// 	    'dbpass' => 'senslope'
-	// 	    ],
-	// 	"wsscredentials" => [
-	// 		'host' => 'localhost',
-	// 		'port' => '5050'
-	// 	]
-	// ];
 // ?>
